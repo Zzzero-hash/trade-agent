@@ -73,3 +73,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Roo Code specific files
+.roo/
