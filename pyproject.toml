@@ -27,12 +27,17 @@ dependencies = [
     "ray[rllib,tune]>=2.6.0,<3.0.0",
     "yfinance>=0.2.0",
     "stable-baselines3>=2.0.0,<3.0.0",
+    "html5lib>=1.1.0",
+    "beautifulsoup4>=4.12.0",
 
     # Scientific computing and analysis
     "scipy>=1.10.0",
     "matplotlib>=3.6.0",
     "psutil>=5.9.0",
     "optuna>=3.0.0",
+    "xgboost>=1.6.0",
+    "tsfresh>=0.18.0",
+    "lxml>=0.9.0",
 
     # Visualization
     "plotly>=5.0.0",
@@ -81,7 +86,3 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/trading-rl-platform/trading-rl-agent"
 "Bug Tracker" = "https://github.com/trading-rl-platform/trading-rl-agent/issues"
-
-[project.scripts]
-trade-agent = "trade_agent.cli:app"
-trading-cli = "trading_cli:app"
