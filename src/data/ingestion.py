@@ -11,67 +11,30 @@ import logging
 from typing import NamedTuple
 
 import pandas as pd
+import ray
 import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
 
+@ray.remote
 def fetch_data(
-    symbols: list[str],
-    start_date: str,
-    end_date: str,
-    interval: str = '1d'
+    symbol: str, start_date: str, end_date: str, interval: str = '1d'
 ) -> pd.DataFrame:
-    """Fetch OHLCV data for given symbols using yfinance.
-
-    Args:
-        symbols: List of stock symbols to fetch data for
-        start_date: Start date in 'YYYY-MM-DD' format
-        end_date: End date in 'YYYY-MM-DD' format
-        interval: Data interval (default: '1d' for daily)
-
-    Returns:
-        DataFrame with OHLCV data for all symbols
-    """
-    logger.info(
-        f"Fetching data for {len(symbols)} symbols "
-        f"from {start_date} to {end_date}"
-    )
-
-    all_data = []
-
-    for symbol in symbols:
-        try:
-            ticker = yf.Ticker(symbol)
-            data = ticker.history(
-                start=start_date, end=end_date, interval=interval
-            )
-
-            if not data.empty:
-                # Add symbol column and reset index
-                data['Symbol'] = symbol
-                data.reset_index(inplace=True)
-                all_data.append(data)
-                logger.info(
-                    f"Successfully fetched {len(data)} rows for {symbol}"
-                )
-            else:
-                logger.warning(f"No data returned for {symbol}")
-
-        except Exception as e:
-            logger.error(f"Error fetching data for {symbol}: {e}")
-            continue
-
-    if all_data:
-        # Combine all data
-        result = pd.concat(all_data, ignore_index=True)
-        logger.info(
-            f"Total data fetched: {len(result)} rows "
-            f"for {len(symbols)} symbols"
+    """Fetches OHLCV data for a single symbol."""
+    try:
+        ticker = yf.Ticker(symbol)
+        data = ticker.history(
+            start=start_date,
+            end=end_date,
+            interval=interval
         )
-        return result
-    else:
-        logger.error("No data was successfully fetched")
+        if not data.empty:
+            data['Symbol'] = symbol
+            return data.reset_index()
+        return pd.DataFrame()
+    except Exception as e:
+        logger.error(f"Error fetching data for {symbol}: {e}")
         return pd.DataFrame()
 
 
@@ -107,7 +70,7 @@ class MarketUniverse:
 
     @staticmethod
     def get_equities_universe() -> list[Instrument]:
-        """20 large-cap equities from each GICS sector."""
+        """40 large and mid-cap equities (20 large + 20 mid) from each GICS sector."""
         equities = {
             "Information Technology": [
                 ("AAPL", "Apple Inc.", "NASDAQ", "USD", "yahoo", "equity"),
@@ -148,8 +111,16 @@ class MarketUniverse:
                 ("MU", "Micron Technology Inc.", "NASDAQ",
                  "USD", "yahoo", "equity", "Information Technology"),
                 ("LRCX", "Lam Research Corp.", "NASDAQ",
+                 "USD", "yahoo", "equity", "Information Technology"),
+                ("ADI", "Analog Devices Inc.", "NASDAQ",
+                 "USD", "yahoo", "equity", "Information Technology"),
+                ("QCOM", "Qualcomm Inc.", "NASDAQ",
+                 "USD", "yahoo", "equity", "Information Technology"),
+                ("TXN", "Texas Instruments Inc.", "NASDAQ",
+                 "USD", "yahoo", "equity", "Information Technology"),
+                ("CDNS", "Cadence Design Systems", "NASDAQ",
                  "USD", "yahoo", "equity", "Information Technology")
-            ],
+               ],
             "Healthcare": [
                 ("UNH", "UnitedHealth Group Inc.", "NYSE",
                  "USD", "yahoo", "equity", "Healthcare"),
@@ -592,7 +563,7 @@ class MarketUniverse:
 
     @staticmethod
     def get_etfs_universe() -> list[Instrument]:
-        """10 broad-market ETFs."""
+        """30 broad-market and sector ETFs."""
         etfs = [
             ("SPY", "SPDR S&P 500 ETF", "AMEX",
              "USD", "yahoo", "etf", "US Equity"),
@@ -613,8 +584,42 @@ class MarketUniverse:
             ("VEA", "Vanguard FTSE Dev.", "AMEX",
              "USD", "yahoo", "etf", "Developed Mkts"),
             ("VWO", "Vanguard FTSE Emerg.", "AMEX",
-             "USD", "yahoo", "etf", "Emerging Mkts")
-        ]
+             "USD", "yahoo", "etf", "Emerging Mkts"),
+
+           # Sector ETFs
+           ("XLE", "Energy Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Energy"),
+           ("XLF", "Financial Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Financials"),
+           ("XLV", "Health Care Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Healthcare"),
+           ("XLI", "Industrial Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Industrials"),
+           ("XLB", "Materials Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Materials"),
+           ("XLK", "Technology Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Information Technology"),
+           ("XLU", "Utilities Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Utilities"),
+           ("XLP", "Consumer Staples Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Consumer Staples"),
+           ("XLY", "Consumer Discretionary Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Consumer Discretionary"),
+           ("XLC", "Communication Services Select Sector SPDR", "AMEX", "USD",
+            "yahoo", "etf", "Communication Services"),
+
+           # International/Regional ETFs
+           ("EWJ", "iShares MSCI Japan ETF", "AMEX", "USD",
+            "yahoo", "etf", "Japan"),
+           ("EWZ", "iShares MSCI Brazil ETF", "AMEX", "USD",
+            "yahoo", "etf", "Brazil"),
+           ("EEM", "iShares MSCI Emerging Markets ETF", "AMEX", "USD",
+            "yahoo", "etf", "Emerging Markets"),
+           ("FEZ", "SPDR EURO STOXX 50 ETF", "AMEX", "USD",
+            "yahoo", "etf", "Europe"),
+           ("FXI", "iShares China Large-Cap ETF", "AMEX", "USD",
+            "yahoo", "etf", "China")
+       ]
 
         instruments: list[Instrument] = [
             Instrument(
@@ -623,14 +628,14 @@ class MarketUniverse:
                 asset_class=asset_class, sector=sector,
                 exchange=exchange
             ) for symbol, name, exchange, currency,
-                data_source, asset_class, sector in etfs
+            data_source, asset_class, sector in etfs
         ]
 
         return instruments
 
     @staticmethod
     def get_crypto_universe() -> list[Instrument]:
-        """20 high-volume cryptocurrencies."""
+        """40 high-volume cryptocurrencies including altcoins and tokens."""
         cryptos = [
             ("BTC-USD", "Bitcoin", "Global", "USD", "yahoo", "crypto"),
             ("ETH-USD", "Ethereum", "Global", "USD", "yahoo", "crypto"),
@@ -646,12 +651,33 @@ class MarketUniverse:
             ("XLM-USD", "Stellar", "Global", "USD", "yahoo", "crypto"),
             ("TRX-USD", "TRON", "Global", "USD", "yahoo", "crypto"),
             ("LINK-USD", "Chainlink", "Global", "USD", "yahoo", "crypto"),
-            ("ETC-USD", "Ethereum Classic", "Global", "USD", "yahoo", "crypto"),
+            ("ETC-USD", "Ethereum Classic", "Global",
+             "USD", "yahoo", "crypto"),
             ("UNI-USD", "Uniswap", "Global", "USD", "yahoo", "crypto"),
             ("AVAX-USD", "Avalanche", "Global", "USD", "yahoo", "crypto"),
             ("ATOM-USD", "Cosmos", "Global", "USD", "yahoo", "crypto"),
             ("CRO-USD", "Cronos", "Global", "USD", "yahoo", "crypto"),
             ("ALGO-USD", "Algorand", "Global", "USD", "yahoo", "crypto"),
+            # Additional crypto assets
+            ("XMR-USD", "Monero", "Global", "USD", "yahoo", "crypto"),
+            ("ZEC-USD", "Zcash", "Global", "USD", "yahoo", "crypto"),
+            ("ETC-USD", "Ethereum Classic", "Global", "USD", "yahoo", "crypto"),
+            ("XTZ-USD", "Tezos", "Global", "USD", "yahoo", "crypto"),
+            ("NEAR-USD", "NEAR Protocol", "Global", "USD", "yahoo", "crypto"),
+            ("FTM-USD", "Fantom", "Global", "USD", "yahoo", "crypto"),
+            ("GRT-USD", "The Graph", "Global", "USD", "yahoo", "crypto"),
+            ("SUSHI-USD", "SushiSwap", "Global", "USD", "yahoo", "crypto"),
+            ("MKR-USD", "Maker", "Global", "USD", "yahoo", "crypto"),
+            ("AAVE-USD", "Aave", "Global", "USD", "yahoo", "crypto"),
+            ("COMP-USD", "Compound", "Global", "USD", "yahoo", "crypto"),
+            ("YFI-USD", "yearn.finance", "Global", "USD", "yahoo", "crypto"),
+            ("SNX-USD", "Synthetix", "Global", "USD", "yahoo", "crypto"),
+            ("CRV-USD", "Curve DAO Token", "Global", "USD", "yahoo", "crypto"),
+            ("KSM-USD", "Kusama", "Global", "USD", "yahoo", "crypto"),
+            ("DYDX-USD", "dYdX", "Global", "USD", "yahoo", "crypto"),
+            ("RUNE-USD", "THORChain", "Global", "USD", "yahoo", "crypto"),
+            ("1INCH-USD", "1inch Network", "Global", "USD", "yahoo", "crypto"),
+            ("OCEAN-USD", "Ocean Protocol", "Global", "USD", "yahoo", "crypto")
         ]
 
         instruments: list[Instrument] = [
@@ -660,7 +686,7 @@ class MarketUniverse:
                 currency=currency, data_source=data_source,
                 asset_class=asset_class, exchange=exchange
             ) for symbol, name, exchange, currency,
-                data_source, asset_class in cryptos
+            data_source, asset_class in cryptos
         ]
 
         return instruments
@@ -687,7 +713,7 @@ class MarketUniverse:
                 currency=currency, data_source=data_source,
                 asset_class=asset_class
             ) for symbol, name, exchange, currency,
-                data_source, asset_class in futures
+            data_source, asset_class in futures
         ]
 
         return instruments
@@ -710,7 +736,7 @@ class MarketUniverse:
                 currency=currency, data_source=data_source,
                 asset_class=asset_class, sector=sector
             ) for symbol, name, exchange, currency,
-                data_source, asset_class, sector in reits
+            data_source, asset_class, sector in reits
         ]
 
         return instruments
@@ -731,7 +757,70 @@ class MarketUniverse:
                 currency=currency, data_source=data_source,
                 asset_class=asset_class
             ) for symbol, name, exchange, currency,
-                data_source, asset_class in volatility_products
+            data_source, asset_class in volatility_products
+        ]
+
+        return instruments
+
+    @staticmethod
+    def get_forex_universe() -> list[Instrument]:
+        """25 forex pairs including emerging markets."""
+        forex_pairs = [
+            ("USDCNY=X", "USD/CNY", "FOREX", "CNY", "yahoo", "forex"),
+            ("USDINR=X", "USD/INR", "FOREX", "INR", "yahoo", "forex"),
+            ("USDBRL=X", "USD/BRL", "FOREX", "BRL", "yahoo", "forex"),
+            # Major pairs
+            ("USDCNY=X", "USD/CNY", "FOREX", "CNY", "yahoo", "forex"),
+            ("USDINR=X", "USD/INR", "FOREX", "INR", "yahoo", "forex"),
+            ("USDBRL=X", "USD/BRL", "FOREX", "BRL", "yahoo", "forex"),
+            ("USDKRW=X", "USD/KRW", "FOREX", "KRW", "yahoo", "forex"),
+            ("USDMXN=X", "USD/MXN", "FOREX", "MXN", "yahoo", "forex"),
+            ("USDZAR=X", "USD/ZAR", "FOREX", "ZAR", "yahoo", "forex"),
+            ("USDSGD=X", "USD/SGD", "FOREX", "SGD", "yahoo", "forex"),
+            ("EURUSD=X", "Euro to US Dollar", "FOREX",
+             "USD", "yahoo", "forex"),
+            ("GBPUSD=X", "British Pound to US Dollar", "FOREX",
+             "USD", "yahoo", "forex"),
+            ("USDJPY=X", "USD/JPY", "FOREX", "JPY", "yahoo", "forex"),
+            ("AUDUSD=X", "Australian Dollar to US Dollar", "FOREX",
+             "USD", "yahoo", "forex"),
+            ("USDCAD=X", "US Dollar to Canadian Dollar", "FOREX",
+             "CAD", "yahoo", "forex"),
+            ("USDCHF=X", "US Dollar to Swiss Franc", "FOREX",
+             "CHF", "yahoo", "forex"),
+            ("NZDUSD=X", "New Zealand Dollar to US Dollar", "FOREX",
+             "USD", "yahoo", "forex"),
+            ("EURGBP=X", "Euro to British Pound", "FOREX",
+             "GBP", "yahoo", "forex"),
+            ("EURJPY=X", "Euro to Japanese Yen", "FOREX",
+             "JPY", "yahoo", "forex"),
+            ("GBPJPY=X", "British Pound to Japanese Yen", "FOREX",
+             "JPY", "yahoo", "forex")
+        ]
+
+        instruments: list[Instrument] = [
+            Instrument(
+                symbol=symbol, name=name, exchange=exchange,
+                currency=currency, data_source=data_source,
+                asset_class=asset_class
+            ) for symbol, name, exchange, currency,
+            data_source, asset_class in forex_pairs + [
+                ("USDCNY=X", "US Dollar to Chinese Yuan", "FOREX", "CNY", "yahoo", "forex"),
+                ("USDINR=X", "US Dollar to Indian Rupee", "FOREX", "INR", "yahoo", "forex"),
+                ("USDBRL=X", "US Dollar to Brazilian Real", "FOREX", "BRL", "yahoo", "forex"),
+                ("USDKRW=X", "US Dollar to South Korean Won", "FOREX", "KRW", "yahoo", "forex"),
+                ("USDMXN=X", "US Dollar to Mexican Peso", "FOREX", "MXN", "yahoo", "forex"),
+                ("USDZAR=X", "US Dollar to South African Rand", "FOREX", "ZAR", "yahoo", "forex"),
+                ("USDSGD=X", "US Dollar to Singapore Dollar", "FOREX", "SGD", "yahoo", "forex"),
+                ("USDHKD=X", "US Dollar to Hong Kong Dollar", "FOREX", "HKD", "yahoo", "forex"),
+                ("USDDKK=X", "US Dollar to Danish Krone", "FOREX", "DKK", "yahoo", "forex"),
+                ("USDSEK=X", "US Dollar to Swedish Krona", "FOREX", "SEK", "yahoo", "forex"),
+                ("USDNOK=X", "US Dollar to Norwegian Krone", "FOREX", "NOK", "yahoo", "forex"),
+                ("USDTRY=X", "US Dollar to Turkish Lira", "FOREX", "TRY", "yahoo", "forex"),
+                ("USDPLN=X", "US Dollar to Polish Zloty", "FOREX", "PLN", "yahoo", "forex"),
+                ("USDTHB=X", "US Dollar to Thai Baht", "FOREX", "THB", "yahoo", "forex"),
+                ("USDIDR=X", "US Dollar to Indonesian Rupiah", "FOREX", "IDR", "yahoo", "forex")
+            ]
         ]
 
         return instruments
@@ -746,9 +835,92 @@ class MarketUniverse:
         all_instruments.extend(MarketUniverse.get_commodities_universe())
         all_instruments.extend(MarketUniverse.get_reit_universe())
         all_instruments.extend(MarketUniverse.get_volatility_universe())
+        all_instruments.extend(MarketUniverse.get_forex_universe())
 
         logger.info(
             f"Total instruments in market universe: {len(all_instruments)}"
         )
 
         return all_instruments
+
+
+def fetch_data_for_symbols(
+    validated_symbols_only: bool = True
+) -> dict[str, pd.DataFrame]:
+    """Fetch data for symbols in the market universe.
+
+    Args:
+        validated_symbols_only: If True, only fetch data for validated symbols
+    """
+    from datetime import datetime, timedelta
+
+    # Get all instruments
+    instruments = MarketUniverse.get_all_instruments()
+    symbols = [instrument.symbol for instrument in instruments]
+
+    # Filter to only validated symbols if requested
+    if validated_symbols_only:
+        from .symbol_corrector import run_symbol_validation
+        validation_data = run_symbol_validation()
+        validation_results = validation_data.get('validation_results', {})
+
+        # Filter to only valid symbols
+        valid_symbols = []
+        for symbol in symbols:
+            result = validation_results.get(symbol)
+            if result and hasattr(result, 'status'):
+                from .validation import ValidationStatus
+                if result.status == ValidationStatus.VALID:
+                    valid_symbols.append(symbol)
+                else:
+                    logger.warning(
+                        f"Skipping invalid symbol {symbol}: "
+                        f"{result.status.value}"
+                    )
+            else:
+                logger.warning(f"No validation result for symbol {symbol}")
+
+        symbols = valid_symbols
+        logger.info(
+            f"Filtered to {len(symbols)} validated symbols "
+            f"(skipped {len(instruments) - len(symbols)} invalid)"
+        )
+
+    # Date range for data fetching
+    end_date = datetime.now().strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=730)).strftime('%Y-%m-%d')
+
+    logger.info(
+        f"Fetching data for {len(symbols)} symbols "
+        f"from {start_date} to {end_date}"
+    )
+
+    # Fetch data for each symbol
+    symbol_data = {}
+
+    # Use Ray to fetch data in parallel
+    df_refs = []
+    symbol_refs = []
+
+    for symbol in symbols:
+        df_ref = fetch_data.remote(
+            symbol,
+            start_date,
+            end_date,
+            '1d'
+        )
+        df_refs.append(df_ref)
+        symbol_refs.append(symbol)
+
+    # Get all results
+    dfs = ray.get(df_refs)
+
+    # Build symbol to dataframe mapping
+    for symbol, df in zip(symbol_refs, dfs):
+        if not df.empty:
+            symbol_data[symbol] = df
+        else:
+            logger.warning(f"No data available for symbol: {symbol}")
+
+    logger.info(f"Successfully fetched data for {len(symbol_data)} symbols")
+    return symbol_data
