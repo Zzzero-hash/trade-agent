@@ -1,23 +1,23 @@
 """
-Enhanced OHLCV Data Collection for Trading Bot
-This script fetches OHLCV data for S&P 500 symbols over the last two years
-plus the current year, using daily intervals. It leverages Ray for parallel
-data fetching and processes the data through a defined pipeline."""
+Trading RL Agent Main Entry Point
+
+This script demonstrates the unified data pipeline orchestrator optimized
+for CNN-LSTM training. It processes S&P 500 symbols through the complete
+pipeline including validation, feature engineering, and CNN-LSTM tensor
+preparation.
+"""
 
 import logging
 import os
 import tempfile
-from datetime import datetime, timedelta
 
-import pandas as pd
 import ray
 
-from src.data import orchestrator
-from src.data.ingestion import fetch_data
+from src.data.unified_orchestrator import run_cnn_lstm_pipeline
 
 
 def main():
-    """Main entry for the bot with enhanced OHLCV data collection."""
+    """Main entry point for the trading RL agent."""
     # Initialize Ray with secure temporary directory configuration
     temp_base_dir = tempfile.gettempdir()
     ray.init(
@@ -26,39 +26,105 @@ def main():
     )
 
     # Initialize logging
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
     logger = logging.getLogger(__name__)
 
-    # Fetch S&P 500 symbols
-    symbols = fetch_data()
+    logger.info("🚀 Starting Trading RL Agent Data Pipeline")
 
-    # Use recent data for trading (last 2 years + current)
-    end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=730)).strftime('%Y-%m-%d')
-
-    logger.info(f"Fetching OHLCV data from {start_date} to {end_date}")
-
-    # Fetch comprehensive OHLCV data with daily intervals
-    # Create remote function calls for each symbol
-    df_refs = []
-    for symbol in symbols:
-        df_ref = fetch_data.remote(
-            symbol,
-            start_date=start_date,
-            end_date=end_date,
-            interval='1d'
+    try:
+        # Run the unified CNN-LSTM optimized pipeline
+        result = run_cnn_lstm_pipeline(
+            symbols=None,  # Will use S&P 500 symbols
+            enable_auto_correction=True,
+            max_validation_iterations=3,
+            target_assets=50,  # Start with 50 assets for demo
+            sequence_length=30
         )
-        df_refs.append(df_ref)
 
-    # Get all results
-    dfs = ray.get(df_refs)
+        if result['success']:
+            logger.info("✅ Pipeline completed successfully!")
+            logger.info(f"Processed data shape: {result['data'].shape}")
 
-    # Combine all dataframes
-    df = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+            cnn_lstm_tensor = result.get('cnn_lstm_tensor')
+            if cnn_lstm_tensor is not None:
+                logger.info(f"CNN-LSTM tensor shape: {cnn_lstm_tensor.shape}")
+                logger.info("🧠 Data ready for CNN-LSTM training!")
 
-    # Process the data
-    processed_data = orchestrator.orchestrate_data_pipeline(df)
-    logger.info("Pipeline completed successfully")
+            logger.info(f"Metrics: {result['metrics']}")
+        else:
+            logger.error(f"❌ Pipeline failed: {result['error']}")
+
+    except Exception as e:
+        logger.error(f"❌ Fatal error in main pipeline: {str(e)}")
+        raise
+
+    finally:
+        # Cleanup Ray
+        ray.shutdown()
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+def main():
+    """Main entry point for the trading RL agent."""
+    # Initialize Ray with secure temporary directory configuration
+    temp_base_dir = tempfile.gettempdir()
+    ray.init(
+        object_spilling_directory=os.path.join(temp_base_dir, "ray_spill"),
+        _temp_dir=os.path.join(temp_base_dir, "ray_temp")
+    )
+
+    # Initialize logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+
+    logger.info("🚀 Starting Trading RL Agent Data Pipeline")
+
+    try:
+        # Run the unified CNN-LSTM optimized pipeline
+        result = run_cnn_lstm_pipeline(
+            symbols=None,  # Will use S&P 500 symbols
+            enable_auto_correction=True,
+            max_validation_iterations=3,
+            target_assets=50,  # Start with 50 assets for demo
+            sequence_length=30
+        )
+
+        if result['success']:
+            logger.info("✅ Pipeline completed successfully!")
+            logger.info(f"Processed data shape: {result['data'].shape}")
+
+            cnn_lstm_tensor = result.get('cnn_lstm_tensor')
+            if cnn_lstm_tensor is not None:
+                logger.info(f"CNN-LSTM tensor shape: {cnn_lstm_tensor.shape}")
+                logger.info("🧠 Data ready for CNN-LSTM training!")
+
+            logger.info(f"Metrics: {result['metrics']}")
+        else:
+            logger.error(f"❌ Pipeline failed: {result['error']}")
+
+    except Exception as e:
+        logger.error(f"❌ Fatal error in main pipeline: {str(e)}")
+        raise
+
+    finally:
+        # Cleanup Ray
+        ray.shutdown()
+
+
+if __name__ == "__main__":
+    main()
     logger.info(f"Processed data shape: {processed_data.shape}")
     logger.info(f"Sample processed data:\n{processed_data.head()}")
 
