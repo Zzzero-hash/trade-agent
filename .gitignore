@@ -77,6 +77,5 @@ MANIFEST
 # Roo Code specific files
 .roo/
 
-# Ruff 
+# Ruff
 .ruff_cache/
-

@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "context7": "^1.0.3"
+    "context7": "^1.0.3",
+    "mcp-server": "^0.0.9"
   }
 }
