@@ -54,7 +54,7 @@ A comprehensive system ensuring data integrity and reliability:
 │   ├── data/                 # Data processing modules
 │   │   ├── ingestion.py      # Data ingestion (now parallelized with Ray)
 │   │   ├── processing.py     # Data transformation and feature extraction (parallelized)
-│   │   ├── orchestrator.py   # Pipeline orchestration (Ray-based)
+│   │   ├── unified_orchestrator.py   # Unified pipeline orchestration
 │   │   ├── validation.py     # Symbol validation logic
 │   │   ├── symbol_corrector.py # Symbol correction framework
 │   │   └── cleaning.py       # Data cleaning utilities
@@ -74,9 +74,9 @@ A comprehensive system ensuring data integrity and reliability:
 ## Installation
 
 1. Clone the repository
-2. Install dependencies:
+2. Install dependencies (editable install recommended):
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 3. Set up environment variables (see `.env.example`)
 
@@ -88,14 +88,13 @@ A comprehensive system ensuring data integrity and reliability:
 python -c "from src.data.symbol_corrector import main; main()"
 ```
 
-### Running the Parallelized Data Pipeline
+### Running the Unified Data Pipeline
 
 ```python
-from src.data.orchestrator import new_orchestrator
+from src.data.unified_orchestrator import run_cnn_lstm_pipeline
 
-# Process symbols in parallel
-symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA']
-aligned_data = new_orchestrator(symbols, '2023-01-01', '2023-12-31')
+result = run_cnn_lstm_pipeline()
+print(result['success'], result['metrics'])
 ```
 
 ## Configuration
