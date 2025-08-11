@@ -1,0 +1,21 @@
+{
+  "model_type": "transformer",
+  "model_config": {
+    "input_size": 17,
+    "d_model": 64,
+    "nhead": 8,
+    "num_layers": 2,
+    "dim_feedforward": 128,
+    "output_size": 1,
+    "dropout": 0.1,
+    "sequence_length": 10,
+    "epochs": 10,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "weight_decay": 1e-5,
+    "random_state": 42
+  },
+  "best_params": null,
+  "timestamp": "20250811_170427",
+  "random_state": 42
+}

@@ -1,0 +1,12 @@
+{
+  "model_type": "ridge",
+  "model_config": {
+    "alpha": 1.0,
+    "random_state": 42
+  },
+  "best_params": {
+    "alpha": 100.0
+  },
+  "timestamp": "20250811_164323",
+  "random_state": 42
+}

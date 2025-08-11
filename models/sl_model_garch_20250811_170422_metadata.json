@@ -1,0 +1,16 @@
+{
+  "model_type": "garch",
+  "model_config": {
+    "omega": 0.01,
+    "alpha": 0.1,
+    "beta": 0.8,
+    "random_state": 42
+  },
+  "best_params": {
+    "omega": 0.001,
+    "alpha": 0.05,
+    "beta": 0.7
+  },
+  "timestamp": "20250811_170422",
+  "random_state": 42
+}

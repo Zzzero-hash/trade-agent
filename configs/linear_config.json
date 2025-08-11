@@ -1,0 +1,14 @@
+{
+  "model_type": "linear",
+  "model_config": {},
+  "cv_config": {
+    "n_splits": 5,
+    "gap": 10
+  },
+  "tuning_config": {
+    "enable_tuning": false
+  },
+  "random_state": 42,
+  "output_dir": "models/",
+  "save_model": true
+}

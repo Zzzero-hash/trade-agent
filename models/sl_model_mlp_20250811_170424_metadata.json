@@ -1,0 +1,17 @@
+{
+  "model_type": "mlp",
+  "model_config": {
+    "input_size": 17,
+    "hidden_sizes": [64, 32, 16],
+    "output_size": 1,
+    "dropout": 0.2,
+    "epochs": 10,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "weight_decay": 1e-5,
+    "random_state": 42
+  },
+  "best_params": null,
+  "timestamp": "20250811_170424",
+  "random_state": 42
+}

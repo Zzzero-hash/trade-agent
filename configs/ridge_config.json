@@ -1,0 +1,22 @@
+{
+  "model_type": "ridge",
+  "model_config": {
+    "alpha": 1.0,
+    "random_state": 42
+  },
+  "cv_config": {
+    "n_splits": 5,
+    "gap": 10
+  },
+  "tuning_config": {
+    "enable_tuning": true,
+    "scoring_metric": "neg_mean_squared_error",
+    "param_grid": {
+      "alpha": [0.1, 1.0, 10.0, 100.0]
+    },
+    "n_trials": 20
+  },
+  "random_state": 42,
+  "output_dir": "models/",
+  "save_model": true
+}
