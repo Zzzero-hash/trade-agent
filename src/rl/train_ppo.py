@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(
@@ -120,13 +120,36 @@ class PPOTrainer:
             make_env(i, self.seed) for i in range(n_envs)
         ])
 
-        # Create single evaluation environment
-        eval_env = TradingEnvironment(
-            data_file=val_file,
-            initial_capital=initial_capital,
-            transaction_cost=transaction_cost,
-            seed=self.seed + 1000,  # Different seed for evaluation
-            window_size=window_size
+        # Apply VecNormalize to training environment for reward scaling
+        reward_scaling_config = self.ppo_config.get('reward_scaling', {})
+        reward_clip = reward_scaling_config.get('clip_range', 10.0)
+
+        train_env = VecNormalize(
+            train_env,
+            norm_obs=False,  # Not normalizing observations
+            norm_reward=True,  # Normalize rewards
+            clip_reward=reward_clip
+        )
+
+        # Create vectorized evaluation environment
+        def make_eval_env():
+            return TradingEnvironment(
+                data_file=val_file,
+                initial_capital=initial_capital,
+                transaction_cost=transaction_cost,
+                seed=self.seed + 1000,  # Different seed for evaluation
+                window_size=window_size
+            )
+
+        eval_env = DummyVecEnv([make_eval_env])
+
+        # Apply VecNormalize to evaluation environment but disable
+        # reward normalization during evaluation
+        eval_env = VecNormalize(
+            eval_env,
+            norm_obs=False,  # Not normalizing observations
+            norm_reward=False,  # Disable reward normalization for evaluation
+            training=False  # Set to evaluation mode
         )
 
         return train_env, eval_env, train_data, val_data

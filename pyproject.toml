@@ -50,7 +50,6 @@ dependencies = [
     # Database dependencies
     "psycopg2-binary>=2.9.0",
     "sqlalchemy>=2.0.0",
-    "pandas[postgresql]>=2.0.0",
 
     # Documentation dependencies
     "sphinx>=7.0.0",

@@ -1,0 +1,11 @@
+{
+  "mean_reward": -0.001002003005008014,
+  "mean_return": -100.10010010009864,
+  "std_return": 0.0,
+  "episode_returns": [-100.10010010009864],
+  "episode_rewards": [-0.001002003005008014],
+  "n_episodes": 1,
+  "mean_entropy": -0.9486204385757446,
+  "std_entropy": 0.0,
+  "episode_entropies": [-0.9486204385757446]
+}
