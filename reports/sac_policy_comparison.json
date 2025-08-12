@@ -1,0 +1,25 @@
+{
+  "deterministic": {
+    "mean_action": -0.7051064968109131,
+    "std_action": 0.07939478009939194,
+    "mean_reward": -1.1306332077413126e-5,
+    "std_reward": 2.3969620531003816e-5,
+    "mean_return": -176.21785611128144,
+    "std_return": 0.0,
+    "action_consistency": 0.9206052199006081
+  },
+  "stochastic": {
+    "mean_action": -0.2807522118091583,
+    "std_action": 0.6057894229888916,
+    "mean_reward": -0.0003778585949793376,
+    "std_reward": 0.0003085314811499309,
+    "mean_return": -5721.366785623555,
+    "std_return": 457.4672781640164,
+    "action_consistency": 0.3942105770111084
+  },
+  "comparison": {
+    "action_variation_ratio": 7.630090365255985,
+    "reward_variation_ratio": 12.866403817817853,
+    "exploration_level": "high"
+  }
+}

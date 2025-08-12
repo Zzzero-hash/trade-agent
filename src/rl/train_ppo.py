@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
 
 # Add the project root to the Python path
@@ -33,6 +33,39 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(
 
 from src.envs.trading_env import TradingEnvironment  # noqa: E402
 from src.sl.models.base import set_all_seeds  # noqa: E402
+
+
+class EntropyCoefficientCallback(BaseCallback):
+    """
+    Callback for linear entropy coefficient decay during training.
+
+    Args:
+        initial_coef: Initial entropy coefficient
+        final_coef: Final entropy coefficient
+        total_timesteps: Total training timesteps
+    """
+
+    def __init__(self, initial_coef: float, final_coef: float, total_timesteps: int):
+        super().__init__()
+        self.initial_coef = initial_coef
+        self.final_coef = final_coef
+        self.total_timesteps = total_timesteps
+
+    def _on_step(self) -> bool:
+        # Calculate current progress (0 to 1)
+        progress = min(1.0, self.num_timesteps / self.total_timesteps)
+
+        # Linear decay
+        current_coef = self.initial_coef - progress * (self.initial_coef - self.final_coef)
+
+        # Update the model's entropy coefficient
+        if hasattr(self.model, 'ent_coef'):
+            if isinstance(self.model.ent_coef, float):
+                self.model.ent_coef = current_coef
+            elif hasattr(self.model.ent_coef, 'set_value'):
+                self.model.ent_coef.set_value(current_coef)
+
+        return True
 
 
 class PPOTrainer:
@@ -197,12 +230,13 @@ class PPOTrainer:
 
         return model
 
-    def setup_callbacks(self, eval_env: Any) -> list[Any]:
+    def setup_callbacks(self, eval_env: Any, total_timesteps: int) -> list[Any]:
         """
         Setup training callbacks.
 
         Args:
             eval_env: Evaluation environment
+            total_timesteps: Total training timesteps
 
         Returns:
             List of callbacks
@@ -222,7 +256,16 @@ class PPOTrainer:
             verbose=1
         )
 
-        return [eval_callback]
+        # Entropy coefficient scheduling callback
+        initial_ent_coef = self.ppo_config.get('ent_coef', 0.05)
+        final_ent_coef = self.ppo_config.get('ent_coef_final', 0.01)
+        entropy_callback = EntropyCoefficientCallback(
+            initial_coef=initial_ent_coef,
+            final_coef=final_ent_coef,
+            total_timesteps=total_timesteps
+        )
+
+        return [eval_callback, entropy_callback]
 
     def plot_learning_curves(self, model: PPO,
                              save_path: str = "reports/ppo_learning.png"):
@@ -320,13 +363,13 @@ class PPOTrainer:
 
         print("Setting up callbacks...")
 
-        # Setup callbacks
-        callbacks = self.setup_callbacks(eval_env)
-
         # Determine total timesteps
         if total_timesteps is None:
             total_timesteps = self.training_config.get('total_timesteps',
                                                        1000000)
+
+        # Setup callbacks
+        callbacks = self.setup_callbacks(eval_env, int(total_timesteps))
 
         print(f"Starting training for {total_timesteps} timesteps...")
 
