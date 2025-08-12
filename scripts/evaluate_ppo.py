@@ -6,7 +6,7 @@ Script to evaluate the PPO agent using a deterministic policy on the validation 
 import json
 import os
 import sys
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
