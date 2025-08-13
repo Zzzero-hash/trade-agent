@@ -1,4 +1,4 @@
-"""
+om"""
 Trading Environment for Reinforcement Learning in Finance.
 
 This module implements a Gymnasium environment for trading that:
@@ -39,7 +39,8 @@ class TradingEnvironment(gym.Env):
         initial_capital: float = 100000.0,
         transaction_cost: float = 0.001,
         seed: int = 42,
-        window_size: int = 30
+        window_size: int = 30,
+        reward_config: dict = None
     ):
         """
         Initialize the trading environment.
@@ -50,6 +51,7 @@ class TradingEnvironment(gym.Env):
             transaction_cost: Fixed transaction cost per trade (as fraction)
             seed: Random seed for deterministic processing
             window_size: Size of the feature window for observations
+            reward_config: Configuration for reward function components
         """
         super().__init__()
 
@@ -61,6 +63,13 @@ class TradingEnvironment(gym.Env):
         self.initial_capital = initial_capital
         self.transaction_cost = transaction_cost
         self.window_size = window_size
+
+        # Reward configuration
+        self.reward_config = reward_config or {}
+        self.pnl_weight = self.reward_config.get('pnl_weight', 1.0)
+        self.transaction_cost_weight = self.reward_config.get('transaction_cost_weight', 1.0)
+        self.risk_adjustment_weight = self.reward_config.get('risk_adjustment_weight', 0.0)
+        self.stability_penalty_weight = self.reward_config.get('stability_penalty_weight', 0.0)
 
         # Load data
         self._load_data(data_file)
@@ -224,8 +233,28 @@ class TradingEnvironment(gym.Env):
         # Update equity based on new position
         self.equity = self.cash + self.position * next_price
 
-        # Calculate reward: position_{t-1} * ret_t - cost(|Δposition|)
-        reward = self.position * return_t - transaction_costs / self.equity if self.equity != 0 else 0.0
+        # Calculate reward components
+        pnl_reward = self.position * return_t
+        cost_reward = transaction_costs / self.equity if self.equity != 0 else 0.0
+
+        # Apply weights to reward components
+        weighted_pnl = self.pnl_weight * pnl_reward
+        weighted_cost = self.transaction_cost_weight * cost_reward
+
+        # Calculate total reward
+        reward = weighted_pnl - weighted_cost
+
+        # Add risk adjustment component if enabled
+        if self.risk_adjustment_weight > 0:
+            # Simple risk adjustment based on position stability
+            risk_adjustment = abs(position_change) / (abs(self.position) + 1e-8)
+            reward -= self.risk_adjustment_weight * risk_adjustment
+
+        # Add stability penalty if enabled
+        if self.stability_penalty_weight > 0:
+            # Penalty for large position changes
+            stability_penalty = (abs(position_change) / self.equity) ** 2
+            reward -= self.stability_penalty_weight * stability_penalty
 
         # Check accounting invariants
         self._check_accounting_invariants()
@@ -450,6 +479,30 @@ def verify_environment():
 
     print("   ✓ Deterministic processing works!")
 
+    # 6. Test reward configuration
+    print("6. Verifying reward configuration...")
+    # Create environment with custom reward configuration
+    reward_config = {
+        'pnl_weight': 2.0,
+        'transaction_cost_weight': 0.5,
+        'risk_adjustment_weight': 0.1,
+        'stability_penalty_weight': 0.05
+    }
+    env_reward = TradingEnvironment(seed=42, reward_config=reward_config)
+    env_reward.reset()
+
+    # Take a step and check that reward is calculated
+    action = np.array([0.5])
+    obs, reward, terminated, truncated, info = env_reward.step(action)
+
+    if isinstance(reward, (int, float)):
+        print("   ✓ Reward configuration works!")
+    else:
+        print(f"   ✗ Reward configuration failed: {reward}")
+        return False
+
+    env_reward.close()
+
     print("\nAll verification steps passed! ✓")
     return True
 
@@ -473,17 +526,34 @@ def main():
                         help="Random seed")
     parser.add_argument("--window", type=int, default=30,
                         help="Feature window size")
+    parser.add_argument("--pnl-weight", type=float, default=1.0,
+                        help="Weight for PnL component in reward function")
+    parser.add_argument("--cost-weight", type=float, default=1.0,
+                        help="Weight for transaction cost component in reward function")
+    parser.add_argument("--risk-weight", type=float, default=0.0,
+                        help="Weight for risk adjustment component in reward function")
+    parser.add_argument("--stability-weight", type=float, default=0.0,
+                        help="Weight for stability penalty component in reward function")
 
     args = parser.parse_args()
 
     try:
+        # Create reward configuration
+        reward_config = {
+            'pnl_weight': args.pnl_weight,
+            'transaction_cost_weight': args.cost_weight,
+            'risk_adjustment_weight': args.risk_weight,
+            'stability_penalty_weight': args.stability_weight
+        }
+
         # Create environment
         env = TradingEnvironment(
             data_file=args.data,
             initial_capital=args.capital,
             transaction_cost=args.cost,
             seed=args.seed,
-            window_size=args.window
+            window_size=args.window,
+            reward_config=reward_config
         )
 
         # Run verification if requested
