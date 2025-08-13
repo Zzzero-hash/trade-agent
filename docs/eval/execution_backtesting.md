@@ -38,7 +38,7 @@ The Execution and Backtesting component handles:
 
 ## Backtesting Pipeline
 
-```mermaid
+```{mermaid}
 graph TD
     A[Historical Data] --> B[Strategy Initialization]
     B --> C[Position Generation]

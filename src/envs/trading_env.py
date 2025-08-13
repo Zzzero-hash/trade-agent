@@ -1,4 +1,4 @@
-om"""
+"""
 Trading Environment for Reinforcement Learning in Finance.
 
 This module implements a Gymnasium environment for trading that:

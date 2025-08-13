@@ -19,7 +19,7 @@ The event-driven engine provides timestamp-accurate simulation with detailed mar
 
 #### Architecture
 
-```mermaid
+```{mermaid}
 graph TD
     A[Event Queue] --> B[Event Processor]
     B --> C[Market Simulator]
@@ -60,7 +60,7 @@ The vectorized engine provides fast performance evaluation for portfolio-level c
 
 #### Architecture
 
-```mermaid
+```{mermaid}
 graph TD
     A[Historical Data] --> B[Signal Generation]
     B --> C[Position Calculation]

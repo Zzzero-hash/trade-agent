@@ -71,7 +71,7 @@ The Market Data component handles:
 
 ## Data Pipeline
 
-```mermaid
+```{mermaid}
 graph LR
     A[Data Sources] --> B[Collection Service]
     B --> C[Validation Layer]

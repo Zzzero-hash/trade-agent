@@ -36,7 +36,7 @@ The PPO implementation integrates with the CNN+LSTM model architecture:
 
 ### Training Pipeline
 
-```mermaid
+```{mermaid}
 graph TD
     A[Initialize PPO Agent] --> B[Collect Rollouts]
     B --> C[Compute Advantages]
@@ -78,7 +78,7 @@ The SAC implementation integrates with the CNN+LSTM model architecture:
 
 ### Training Pipeline
 
-```mermaid
+```{mermaid}
 graph TD
     A[Initialize SAC Agent] --> B[Collect Experience]
     B --> C[Store in Replay Buffer]

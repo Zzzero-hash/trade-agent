@@ -6,7 +6,7 @@ This document provides a Directed Acyclic Graph (DAG) representation of the PPO 
 
 ## Implementation DAG
 
-```mermaid
+```{mermaid}
 graph TD
     A[Create RL Module Structure] --> B[Implement MLP Features Extractor]
     B --> C[Implement MLP Policy]

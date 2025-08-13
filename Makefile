@@ -15,3 +15,23 @@ backtest: data/large_sample_data.parquet  ## Run the backtesting process
 data/large_sample_data.parquet:
 	@echo "Data file $@ not found. Please ensure data is available."
 	@exit 1
+
+# Documentation build
+.PHONY: docs
+docs:  ## Build Sphinx documentation into docs/_build/html (warnings as errors)
+	@sphinx-build -W -b html docs/source docs/_build/html
+	@echo "Docs built at docs/_build/html/index.html"
+
+.PHONY: docs-versions
+docs-versions:  ## Build multi-version docs into docs/_build/multiversion
+	@sphinx-multiversion docs/source docs/_build/multiversion
+	@echo "Multi-version docs built at docs/_build/multiversion/index.html"
+
+.PHONY: docs-live
+docs-live:  ## Auto-reload Sphinx docs (requires sphinx-autobuild)
+	@command -v sphinx-autobuild >/dev/null 2>&1 || { echo 'Install sphinx-autobuild to use live mode'; exit 1; }
+	@sphinx-autobuild docs/source docs/_build/html --open-browser
+
+.PHONY: docs-clean
+docs-clean:  ## Remove built documentation
+	rm -rf docs/_build

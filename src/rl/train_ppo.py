@@ -27,6 +27,9 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
 
+from src.eval.hyperopt import RobustHyperparameterOptimizer
+from src.eval.walkforward import WalkForwardConfig
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))))
@@ -59,11 +62,10 @@ class EntropyCoefficientCallback(BaseCallback):
         current_coef = self.initial_coef - progress * (self.initial_coef - self.final_coef)
 
         # Update the model's entropy coefficient
-        if hasattr(self.model, 'ent_coef'):
-            if isinstance(self.model.ent_coef, float):
-                self.model.ent_coef = current_coef
-            elif hasattr(self.model.ent_coef, 'set_value'):
-                self.model.ent_coef.set_value(current_coef)
+        if hasattr(self.model, "ent_coef") and hasattr(self.model, "set_parameters"):
+            self.model.ent_coef = current_coef
+        elif hasattr(self.model, 'ent_coef') and hasattr(self.model.ent_coef, 'set_value'):
+            self.model.ent_coef.set_value(current_coef)
 
         return True
 
@@ -187,27 +189,79 @@ class PPOTrainer:
 
         return train_env, eval_env, train_data, val_data
 
-    def setup_model(self, env: Any) -> PPO:
+    def optimize_hyperparameters(self, data_file: str) -> dict[str, Any]:
+        """Optimize hyperparameters using RobustHyperparameterOptimizer."""
+        print("Optimizing hyperparameters...")
+
+        # Load data
+        df = pd.read_parquet(data_file)
+
+        # Placeholder model - replace with actual model if needed for
+        # initialization
+        model = PPO("MlpPolicy", DummyVecEnv([lambda: TradingEnvironment(
+            data_file="data/sample_data.parquet")]))
+
+        # Define base walk forward config
+        base_config = WalkForwardConfig(
+            train_years=1, val_months=3, test_months=3
+        )
+        # Initialize RobustHyperparameterOptimizer
+        optimizer = RobustHyperparameterOptimizer(
+            data=df,
+            model=model,
+            base_config=base_config,
+            n_trials=100,  # Limit to 100 trials
+            early_stopping_patience=10  # Early stopping
+        )
+
+        # Run optimization
+        best_params = optimizer.optimize()
+
+        print(f"Best hyperparameters: {best_params}")
+        return best_params
+
+    def setup_model(self, env: Any, hyperparameters: dict[str, Any] = {}
+                    ) -> PPO:
         """
         Setup PPO model with configured hyperparameters.
 
         Args:
             env: Training environment
-
+            hyperparameters: Dictionary of hyperparameters
         Returns:
             Configured PPO model
         """
-        # Extract PPO hyperparameters
-        learning_rate = self.ppo_config.get('learning_rate', 3e-4)
-        n_steps = self.ppo_config.get('n_steps', 2048)
-        batch_size = self.ppo_config.get('batch_size', 64)
-        n_epochs = self.ppo_config.get('n_epochs', 10)
-        gamma = self.ppo_config.get('gamma', 0.99)
-        gae_lambda = self.ppo_config.get('gae_lambda', 0.95)
-        clip_range = self.ppo_config.get('clip_range', 0.2)
-        ent_coef = self.ppo_config.get('ent_coef', 0.0)
-        vf_coef = self.ppo_config.get('vf_coef', 0.5)
-        max_grad_norm = self.ppo_config.get('max_grad_norm', 0.5)
+        # Extract PPO hyperparameters, using optimized values if available
+        learning_rate: float = hyperparameters.get(
+            'learning_rate', self.ppo_config.get('learning_rate', 3e-4)
+        )
+        n_steps: int = hyperparameters.get(
+            'n_steps', self.ppo_config.get('n_steps', 2048)
+        )
+        batch_size: int = hyperparameters.get(
+            'batch_size', self.ppo_config.get('batch_size', 64)
+        )
+        n_epochs: int = hyperparameters.get(
+            'n_epochs', self.ppo_config.get('n_epochs', 10)
+        )
+        gamma: float = hyperparameters.get(
+            'gamma', self.ppo_config.get('gamma', 0.99)
+        )
+        gae_lambda: float = hyperparameters.get(
+            'gae_lambda', self.ppo_config.get('gae_lambda', 0.95)
+        )
+        clip_range: float = hyperparameters.get(
+            'clip_range', self.ppo_config.get('clip_range', 0.2)
+        )
+        ent_coef: float = hyperparameters.get(
+            'ent_coef', self.ppo_config.get('ent_coef', 0.0)
+        )
+        vf_coef: float = hyperparameters.get(
+            'vf_coef', self.ppo_config.get('vf_coef', 0.5)
+        )
+        max_grad_norm: float = hyperparameters.get(
+            'max_grad_norm', self.ppo_config.get('max_grad_norm', 0.5)
+        )
 
         # Create PPO model
         model = PPO(
@@ -356,10 +410,13 @@ class PPOTrainer:
             data_file, n_envs, initial_capital, transaction_cost, window_size
         )
 
-        print("Setting up PPO model...")
+        print("Optimizing hyperparameters...")
+        # Optimize hyperparameters
+        best_hyperparams = self.optimize_hyperparameters(data_file)
 
-        # Setup model
-        model = self.setup_model(train_env)
+        print("Setting up PPO model...")
+        # Setup model with optimized hyperparameters
+        model = self.setup_model(train_env, best_hyperparams)
 
         print("Setting up callbacks...")
 
@@ -369,13 +426,14 @@ class PPOTrainer:
                                                        1000000)
 
         # Setup callbacks
-        callbacks = self.setup_callbacks(eval_env, int(total_timesteps))
+        callbacks = self.setup_callbacks(eval_env,
+                                         int(total_timesteps) if total_timesteps is not None else 1000000)
 
         print(f"Starting training for {total_timesteps} timesteps...")
 
         # Train model
         model.learn(
-            total_timesteps=int(total_timesteps),  # type: ignore
+            total_timesteps=int(total_timesteps) if total_timesteps is not None else 1000000,
             callback=callbacks,
             progress_bar=True
         )
@@ -389,6 +447,16 @@ class PPOTrainer:
         # Plot learning curves
         self.plot_learning_curves(model)
 
+        # Save training metadata
+        metadata = {
+            'best_hyperparams': best_hyperparams,
+            'training_config': self.training_config,
+            'ppo_config': self.ppo_config
+        }
+        metadata_file = "reports/ppo_training_metadata.json"
+        with open(metadata_file, 'w') as f:
+            json.dump(metadata, f, indent=4)
+        print(f"Training metadata saved to {metadata_file}")
         # Clean up temporary files
         try:
             os.remove("data/train_temp.parquet")

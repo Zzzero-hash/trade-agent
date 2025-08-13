@@ -2,7 +2,7 @@
 
 ## Visual Flow Diagram
 
-```mermaid
+```{mermaid}
 graph TD
     A[Data Sources<br/>Yahoo Finance, Alpaca, Custom APIs] --> B[Raw Data Storage<br/>Parquet files in data/raw/]
     B --> C[Data Validation<br/>Quality checks and validation]

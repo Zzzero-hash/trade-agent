@@ -116,7 +116,7 @@ ppo:
 
 ### 3.3 Training Pipeline Diagram
 
-```mermaid
+```{mermaid}
 graph TD
     A[Initialize PPO Agent] --> B[Collect Rollouts]
     B --> C[Compute Advantages]

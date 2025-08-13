@@ -109,7 +109,7 @@ reward = sharpe_ratio * risk_aversion - transaction_costs - penalty
 
 ## Environment Pipeline
 
-```mermaid
+```{mermaid}
 graph TD
     A[Reset Environment] --> B[Initial State]
     B --> C[Get Observation]

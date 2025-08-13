@@ -8,7 +8,7 @@ This document provides a Directed Acyclic Graph (DAG) representation of the task
 
 ### Mermaid Diagram
 
-```mermaid
+```{mermaid}
 graph TD
     A[Analyze Project Structure] --> B[Create Required Directories]
     B --> C[Verify src/ Directory Structure]

@@ -4,7 +4,7 @@ This document outlines the complete trading system architecture, which follows a
 
 ## System Architecture Diagram
 
-```mermaid
+````mermaid
 graph TD
     A[Market Data<br/>OHLCV, ticks] --> B[Data/Features<br/>Clean, engineer]
     B --> C[SL Forecasters<br/>E[r], σ, probs]
@@ -12,7 +12,7 @@ graph TD
     D --> E[RL<br/>Train PPO and SAC]
     E --> F[Ensemble Combiner<br/>a = w* a_SAC + (1-w)*a_PPO<br/>+ risk caps / governors]
     F --> G[Execution / Backtest / Live]
-
+    ```{mermaid}
     style A fill:#e1f5fe
     style B fill:#f3e5f5
     style C fill:#e8f5e8
@@ -20,11 +20,11 @@ graph TD
     style E fill:#fce4ec
     style F fill:#f1f8e9
     style G fill:#fafafa
-```
+````
 
 ## Detailed Module Structure
 
-```mermaid
+````mermaid
 graph TD
     A[trade-agent Project]
     A --> B[data Package]
@@ -33,7 +33,7 @@ graph TD
     A --> E[envs Package]
     A --> F[rl Package]
     A --> G[ensemble Package]
-    A --> H[eval Package]
+    ```{mermaid}
     A --> I[docs Directory]
 
     B --> B1[collectors]
@@ -93,7 +93,7 @@ graph TD
     style G fill:#f1f8e9
     style H fill:#e0f2f1
     style I fill:#d7ccc8
-```
+````
 
 ## Component Overview
 

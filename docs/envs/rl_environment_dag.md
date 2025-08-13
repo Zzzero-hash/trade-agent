@@ -4,7 +4,7 @@
 
 ### 1.1 Core Implementation Nodes
 
-```mermaid
+```{mermaid}
 graph TD
     A[Project Setup] --> B[Directory Structure Creation]
     B --> C[Main Environment Implementation]
@@ -32,7 +32,7 @@ graph TD
 
 ### 1.2 Testing Pipeline Nodes
 
-```mermaid
+```{mermaid}
 graph TD
     A[Unit Testing] --> B[Integration Testing]
     B --> C[Performance Testing]
@@ -46,7 +46,7 @@ graph TD
 
 ### 1.3 Documentation and Deployment Nodes
 
-```mermaid
+```{mermaid}
 graph TD
     A[Documentation Creation] --> B[Example Scripts]
     B --> C[Verification]
@@ -60,7 +60,7 @@ graph TD
 
 ## 2. Complete RL Environment Implementation DAG
 
-```mermaid
+```{mermaid}
 graph TD
     A[Project Setup] --> B[Directory Structure Creation]
     B --> C[Main Environment Implementation]
@@ -111,7 +111,7 @@ graph TD
 
 ## 3. Environment Operation DAG
 
-```mermaid
+```{mermaid}
 graph TD
     A[Environment Reset] --> B[Observation Generation]
     B --> C[Action Processing]

@@ -65,7 +65,7 @@ The SL Forecasters component handles:
 
 ### Temporal Cross-Validation
 
-```mermaid
+```{mermaid}
 graph LR
     A[Training Set] --> B[Validation Set]
     B --> C[Test Set]

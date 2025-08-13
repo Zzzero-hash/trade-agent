@@ -8,7 +8,7 @@ This document provides a Directed Acyclic Graph (DAG) representation of the feat
 
 ### Mermaid Diagram
 
-```mermaid
+```{mermaid}
 graph TD
     A[Raw Features Input<br/>Cleaned data from data pipeline] --> B[Feature Extraction]
     B --> C[Feature Validation<br/>Quality and consistency checks]

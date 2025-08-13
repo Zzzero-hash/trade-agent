@@ -6,7 +6,7 @@ This document outlines the implementation dependency graph for the SAC (Soft Act
 
 ## Implementation Dependency Graph
 
-```mermaid
+```{mermaid}
 graph TD
     A[Project Setup] --> B[Directory Structure]
     B --> C[SACFeatureExtractor]
@@ -243,7 +243,7 @@ A → B → C → E → F → H → I → K → L → N
 
 ## Timeline Visualization
 
-```mermaid
+```{mermaid}
 gantt
     title SAC Agent Implementation Timeline
     dateFormat  HH:mm

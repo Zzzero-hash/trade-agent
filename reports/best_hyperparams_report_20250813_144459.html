@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Backtest Report</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      h1,
+      h2,
+      h3 {
+        color: #333;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 20px 0;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      .metric-value {
+        text-align: right;
+      }
+      .positive {
+        color: green;
+      }
+      .negative {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Backtest Report</h1>
+    <p>Generated on: 2025-08-13 14:44:59</p>
+
+    <h2>Performance Metrics</h2>
+    <table>
+      <tr>
+        <th>Metric</th>
+        <th>Value</th>
+      </tr>
+      <tr>
+        <td>Cagr</td>
+        <td class="metric-value">-0.0024</td>
+      </tr>
+      <tr>
+        <td>Volatility</td>
+        <td class="metric-value">0.0019</td>
+      </tr>
+      <tr>
+        <td>Sharpe Ratio</td>
+        <td class="metric-value">-11.6585</td>
+      </tr>
+      <tr>
+        <td>Max Drawdown</td>
+        <td class="metric-value">-0.0015</td>
+      </tr>
+      <tr>
+        <td>Calmar Ratio</td>
+        <td class="metric-value">-1.6146</td>
+      </tr>
+      <tr>
+        <td>Turnover</td>
+        <td class="metric-value">1.6258</td>
+      </tr>
+      <tr>
+        <td>Hit Ratio</td>
+        <td class="metric-value">0</td>
+      </tr>
+      <tr>
+        <td>Profit Factor</td>
+        <td class="metric-value">0</td>
+      </tr>
+      <tr>
+        <td>Skewness</td>
+        <td class="metric-value">-12.3696</td>
+      </tr>
+      <tr>
+        <td>Kurtosis</td>
+        <td class="metric-value">151.0065</td>
+      </tr>
+      <tr>
+        <td>Pnl Autocorr</td>
+        <td class="metric-value">-0.0065</td>
+      </tr>
+    </table>
+    <h2>Stress Test Results</h2>
+    <table>
+      <tr>
+        <th>Scenario</th>
+        <th>CAGR</th>
+        <th>Sharpe Ratio</th>
+        <th>Max Drawdown</th>
+      </tr>
+      <tr>
+        <td>Baseline</td>
+        <td class="metric-value">-0.0024</td>
+        <td class="metric-value">-11.6585</td>
+        <td class="metric-value">-0.0015</td>
+      </tr>
+      <tr>
+        <td>High Costs</td>
+        <td class="metric-value">-0.0036</td>
+        <td class="metric-value">-8.1960</td>
+        <td class="metric-value">-0.0022</td>
+      </tr>
+      <tr>
+        <td>Low Costs</td>
+        <td class="metric-value">-0.0012</td>
+        <td class="metric-value">-22.0460</td>
+        <td class="metric-value">-0.0008</td>
+      </tr>
+      <tr>
+        <td>Fill Delay</td>
+        <td class="metric-value">-0.0024</td>
+        <td class="metric-value">-11.6585</td>
+        <td class="metric-value">-0.0015</td>
+      </tr>
+    </table>
+  </body>
+</html>

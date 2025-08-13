@@ -95,7 +95,7 @@ ppo:
 
 ### Process Flow
 
-```mermaid
+```{mermaid}
 graph TD
     A[Initialize PPO Agent] --> B[Collect Rollouts]
     B --> C[Compute Advantages]

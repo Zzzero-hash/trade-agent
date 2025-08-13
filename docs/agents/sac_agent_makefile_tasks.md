@@ -385,7 +385,7 @@ clean-sac-tests:
 
 ## Task Dependencies Diagram
 
-```mermaid
+```{mermaid}
 graph TD
     A[create-sac-structure] --> B[implement-sac-features]
     A --> C[implement-sac-agent]

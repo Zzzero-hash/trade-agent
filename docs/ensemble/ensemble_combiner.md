@@ -71,7 +71,7 @@ Where:
 
 ## Ensemble Pipeline
 
-```mermaid
+```{mermaid}
 graph TD
     A[PPO Agent Action] --> C[Weighted Combination]
     B[SAC Agent Action] --> C
