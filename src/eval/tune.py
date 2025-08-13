@@ -687,13 +687,11 @@ class HyperparameterTuner:
         train_data = df.iloc[:split_index]
         val_data = df.iloc[split_index:]
 
-        # Save temporary files for environments
-        train_file = tempfile.NamedTemporaryFile(suffix='.parquet', delete=False)
-        val_file = tempfile.NamedTemporaryFile(suffix='.parquet', delete=False)
-        train_data.to_parquet(train_file.name)
-        val_data.to_parquet(val_file.name)
-        train_file.close()
-        val_file.close()
+        # Save temporary files for environments with unique names
+        train_file_name = f"temp_train_{uuid.uuid4().hex}.parquet"
+        val_file_name = f"temp_val_{uuid.uuid4().hex}.parquet"
+        train_data.to_parquet(train_file_name)
+        val_data.to_parquet(val_file_name)
 
         try:
             # Create training environment
