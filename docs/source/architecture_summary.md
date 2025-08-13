@@ -6,7 +6,7 @@ This document provides a comprehensive summary of the complete trading system ar
 
 The trading system follows a modular architecture that processes market data through multiple stages to generate executable trading signals. The system is designed with clear separation of concerns, enabling independent development and testing of each component.
 
-```{mermaid}
+````mermaid
 graph TD
     A[Market Data] --> B[Data/Features]
     B --> C[SL Forecasters]
@@ -15,13 +15,14 @@ graph TD
     E --> F[Ensemble Combiner]
     F --> G[Execution System]
 
+    ```{mermaid}
     style B fill:#f3e5f5
     style C fill:#e8f5e8
     style D fill:#fff3e0
     style E fill:#fce4ec
     style F fill:#f1f8e9
     style G fill:#e0f2f1
-```
+````
 
 ## Component Pipeline
 
@@ -83,15 +84,14 @@ graph TD
 
 ## Data Flow Architecture
 
-```{mermaid}
 graph LR
-    A[Raw Data] --> B[Cleaned Data]
-    B --> C[Features]
-    C --> D[Predictions]
-    D --> E[Actions]
-    E --> F[Ensemble Signal]
-    F --> G[Orders]
-    G --> H[Executed Trades]
+A[Raw Data] --> B[Cleaned Data]
+B --> C[Features]
+C --> D[Predictions]
+E --> F[Actions]
+F --> G[Ensemble Signal]
+G --> H[Orders]
+H --> I[Executed Trades]
 
     style A fill:#e1f5fe
     style B fill:#f3e5f5
@@ -102,6 +102,7 @@ graph LR
     style G fill:#e0f2f1
     style H fill:#d7ccc8
     style I fill:#fafafa
+
 ```
 
 ## Key Design Principles
@@ -122,11 +123,13 @@ Special attention is paid to prevent data leakage:
 
 ### 3. Risk Management
 
-Built-in risk controls at multiple levels.
+Built-in risk controls at multiple levels:
+
 
 ### 4. Performance Optimization
 
-The system is designed for efficiency.
+The system is designed for efficiency:
+
 
 ## Technology Stack
 
@@ -138,10 +141,16 @@ The system is designed for efficiency.
 
 - **Distributed Computing**: Ray for parallel training
 
+### Development Environment
+
+
 ### Production Environment
 
 - Cloud deployment (AWS/GCP/Azure)
 - Kubernetes for container orchestration
+
+### Real-time Metrics
+
 
 ### Historical Analysis
 
@@ -150,4 +159,11 @@ The system is designed for efficiency.
 
 ### Additional Components
 
-_(Content to be expanded as implementation progresses.)_
+
+### Enhanced Features
+
+- Real-time feature importance analysis
+- Automated hyperparameter optimization
+
+This architecture provides a robust foundation for developing and deploying algorithmic trading strategies using reinforcement learning. The modular design enables flexibility and scalability while maintaining rigorous standards for data integrity and risk management. The system is designed to evolve with changing market conditions and technological advances.
+```

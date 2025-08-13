@@ -1,4 +1,5 @@
-````{include} ../ray_parallelization_plan.md
+# Ray Parallelization Plan
 
-```{include} ../ray_parallelization_plan.md
-````
+This document will outline how Ray is leveraged for parallelizing environment sampling, hyperparameter tuning, and distributed training.
+
+Content forthcoming.

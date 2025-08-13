@@ -1,5 +1,9 @@
-# RL Components
+# Reinforcement Learning Components
 
-```{include} ../../rl/index.md
+RL environments, agents, and training utilities.
+
+```{toctree}
+:maxdepth: 1
+:caption: RL Modules
 
 ```
