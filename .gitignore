@@ -88,6 +88,22 @@ node_modules/
 logs/
 reports/
 models/
+!models/.gitkeep
+!models/README.md
+
+# Data files (generated or large)
+data/*.parquet
+data/*.npz
+data/*.pkl
+!data/README.md
+!data/sample_data.csv
+
+# Generated test files and temporary data
+**/test_*/*.pkl
+**/pytest-*/
+attribution_dashboard.html
+locust-report.html
+pattern_comparison.png
 
 # Common build artifacts
 *.o
