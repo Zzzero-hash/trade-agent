@@ -1,0 +1,22 @@
+{
+  "ppo": {
+    "algorithm": "PPO",
+    "learning_rate": 0.0003,
+    "n_steps": 64,
+    "batch_size": 32,
+    "n_epochs": 2,
+    "gamma": 0.99,
+    "seed": 42
+  },
+  "training": {
+    "total_timesteps": 1000,
+    "eval_freq": 500,
+    "n_eval_episodes": 1
+  },
+  "mlp_features": {
+    "input_dim": 17,
+    "hidden_layers": [32, 16],
+    "output_dim": 16,
+    "activation": "ReLU"
+  }
+}

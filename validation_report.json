@@ -1,0 +1,172 @@
+{
+  "replay_metadata": {
+    "script_version": "1.0.0",
+    "execution_timestamp": "2025-08-14T19:12:56.434363",
+    "seed": 42,
+    "status": "FAIL"
+  },
+  "seed_validation": {
+    "status": "PASS",
+    "seed_used": 42,
+    "reproducibility_test": true,
+    "sample_hash": "5e00bd3f07ba6a862e724ca1d8a14bdb9fdebdd589a1d5c02d14a3f9a1853957",
+    "error": null
+  },
+  "feature_building": {
+    "status": "PASS",
+    "input_data_shape": [1000, 5],
+    "output_features_shape": [200, 19],
+    "feature_columns": [
+      "log_returns",
+      "rolling_mean_20",
+      "rolling_vol_20",
+      "rolling_mean_60",
+      "rolling_vol_60",
+      "atr",
+      "rsi",
+      "price_z_score",
+      "volume_z_score",
+      "realized_vol",
+      "day_of_week",
+      "month",
+      "day_of_month",
+      "is_monday",
+      "is_friday",
+      "is_month_start",
+      "is_month_end",
+      "mu_hat",
+      "sigma_hat"
+    ],
+    "build_time_seconds": 0.01,
+    "features_hash": "62a5b27c91c89346045479f16db496dc0b197d7030caf402ec3d6ee44928c6fd",
+    "features_path": "data/replay_features.parquet",
+    "error": null
+  },
+  "sl_training": {
+    "status": "PASS",
+    "model_type": "ridge",
+    "training_time_seconds": 0.007879972457885742,
+    "train_mse": 6.121859644514696e-9,
+    "train_mae": 5.949874606232246e-5,
+    "train_r2": 0.047091621450600196,
+    "cv_mse_mean": 0.0,
+    "results_hash": "b61141ad9d7d794b127d314cc9624f36c7da6b882eaca1a4ec9fd40823c98dcd",
+    "error": null
+  },
+  "rl_training": {
+    "ppo": {
+      "status": "ERROR",
+      "error": "\"None of [Index(['mu_hat', 'sigma_hat'], dtype='object')] are in the [columns]\""
+    },
+    "sac": {
+      "status": "ERROR",
+      "error": ""
+    }
+  },
+  "hash_validation": {
+    "features": {
+      "original_hash": "62a5b27c91c89346045479f16db496dc0b197d7030caf402ec3d6ee44928c6fd",
+      "recomputed_hash": "62a5b27c91c89346045479f16db496dc0b197d7030caf402ec3d6ee44928c6fd",
+      "matches": true,
+      "status": "PASS"
+    },
+    "sl_results": {
+      "hash": "b61141ad9d7d794b127d314cc9624f36c7da6b882eaca1a4ec9fd40823c98dcd",
+      "status": "PASS"
+    }
+  },
+  "metric_validation": {
+    "validations": [
+      {
+        "metric_name": "sl_train_mse",
+        "actual_value": 6.121859644514696e-9,
+        "expected_value": 1e-6,
+        "tolerance": 1.0,
+        "relative_error": 0.9938781403554854,
+        "within_tolerance": true,
+        "status": "PASS"
+      },
+      {
+        "metric_name": "sl_train_r2",
+        "actual_value": 0.047091621450600196,
+        "expected_value": 0.95,
+        "tolerance": 0.2,
+        "relative_error": 0.9504298721572629,
+        "within_tolerance": false,
+        "status": "FAIL"
+      },
+      {
+        "metric_name": "feature_count",
+        "actual_value": 19.0,
+        "expected_value": 19.0,
+        "tolerance": 0.1,
+        "relative_error": 0.0,
+        "within_tolerance": true,
+        "status": "PASS"
+      },
+      {
+        "metric_name": "sample_count",
+        "actual_value": 200.0,
+        "expected_value": 200.0,
+        "tolerance": 0.05,
+        "relative_error": 0.0,
+        "within_tolerance": true,
+        "status": "PASS"
+      }
+    ],
+    "total_validations": 4,
+    "passed_validations": 3,
+    "failed_validations": 1
+  },
+  "tolerance_checks": {
+    "checks": [
+      {
+        "check_name": "sl_training_time",
+        "actual_value": 0.007879972457885742,
+        "max_allowed": 30.0,
+        "within_tolerance": true,
+        "status": "PASS"
+      },
+      {
+        "check_name": "feature_build_time",
+        "actual_value": 0.01,
+        "max_allowed": 60.0,
+        "within_tolerance": true,
+        "status": "PASS"
+      },
+      {
+        "check_name": "minimum_samples",
+        "actual_value": 200,
+        "min_required": 10,
+        "within_tolerance": true,
+        "status": "PASS"
+      },
+      {
+        "check_name": "minimum_features",
+        "actual_value": 19,
+        "min_required": 5,
+        "within_tolerance": true,
+        "status": "PASS"
+      }
+    ],
+    "total_checks": 4,
+    "passed_checks": 4,
+    "failed_checks": 0
+  },
+  "overall_validation": {
+    "status": "FAIL",
+    "total_steps": 7,
+    "passed_steps": 5,
+    "failed_steps": 2,
+    "success_rate": 0.7142857142857143,
+    "step_results": {
+      "seed_validation": true,
+      "feature_building": true,
+      "sl_training": true,
+      "rl_training": false,
+      "hash_validation": true,
+      "metric_validation": false,
+      "tolerance_checks": true
+    }
+  }
+}

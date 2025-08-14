@@ -85,9 +85,14 @@ class TradingEnvironment(gym.Env):
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
 
         # Observation space: [feature_window_t, mu_hat_t, sigma_hat_t, position_{t-1}, cash/equity]
-        # obs_dim = self.window_size * self.n_features + 2 + 1 + 1  # window*features + mu_hat + sigma_hat + position + cash/equity
+        obs_dim = self.window_size * self.n_features + 4
         # Use finite bounds for better compatibility with RL algorithms
-        self.observation_space = spaces.Box(low=-1e6, high=1e6, shape=(514,), dtype=np.float32)
+        obs_dim = self.window_size * self.n_features + 4
+        obs_dim = self.window_size * self.n_features + 4
+        obs_dim = self.window_size * self.n_features + 4
+        self.observation_space = spaces.Box(
+            low=-1e6, high=1e6, shape=(obs_dim,), dtype=np.float32
+        )
 
         # Accounting invariants tracking
         self.accounting_errors = []
