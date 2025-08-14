@@ -79,3 +79,21 @@ MANIFEST
 
 # Ruff
 .ruff_cache/
+
+# Node and editor caches / build artifacts
+node_modules/
+.cache/
+
+# Logs, reports, models and large artifacts
+logs/
+reports/
+models/
+
+# Common build artifacts
+*.o
+*.obj
+*.exe
+dist/
+
+# keep workspace settings out
+.env.example
