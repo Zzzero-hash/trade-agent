@@ -3,6 +3,8 @@ import sys
 import unittest
 from typing import Any
 
+import pytest
+
 # Add project root to path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scripts.replay_run import ReplayRunner  # noqa: E402
@@ -50,6 +52,7 @@ class TestReplayValidation(unittest.TestCase):
         runner.save_report(output_path)
         return results
 
+    @pytest.mark.slow
     def test_replay_determinism_and_metrics(self):
         """
         Test that two consecutive replay runs with the same seed produce
@@ -263,6 +266,7 @@ class TestReplayValidation(unittest.TestCase):
         if os.path.exists("test_standalone_report.json"):
             os.remove("test_standalone_report.json")
 
+    @pytest.mark.slow
     def test_basic_pipeline_execution(self):
         """
         Test that the basic pipeline can execute without crashing.
@@ -290,6 +294,7 @@ class TestReplayValidation(unittest.TestCase):
             self.assertIn(section, results,
                           f"Missing expected section: {section}")
 
+    @pytest.mark.slow
     def test_readme_determinism_claims(self):
         """
         Explicitly test determinism claims mentioned in README.

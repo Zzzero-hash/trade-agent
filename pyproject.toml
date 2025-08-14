@@ -97,3 +97,17 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/trading-rl-platform/trading-rl-agent"
 "Bug Tracker" = "https://github.com/trading-rl-platform/trading-rl-agent/issues"
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "rl: marks tests as reinforcement learning tests",
+    "integration: marks tests as integration tests"
+]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-fail-under=80"
+]

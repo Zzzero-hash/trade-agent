@@ -7,6 +7,7 @@ import unittest
 
 import numpy as np
 import pandas as pd
+import pytest
 
 # Import from src modules
 try:
@@ -329,6 +330,7 @@ class TestTrainingPipeline(unittest.TestCase):
         for train_idx, val_idx in splits:
             self.assertLess(np.max(train_idx), np.min(val_idx))  # Temporal order
 
+    @pytest.mark.slow
     def test_training_pipeline(self):
         """Test training pipeline."""
         pipeline = SLTrainingPipeline(self.config)
