@@ -1,6 +1,7 @@
 """
 Training pipeline for supervised learning models with cross-validation.
 """
+import hashlib
 import json
 import os
 import warnings
@@ -376,12 +377,16 @@ class SLTrainingPipeline:
         self.model.save_model(model_path)
 
         # Save model metadata
+        config_json = json.dumps(self.model_config, sort_keys=True)
+        config_hash = hashlib.sha256(config_json.encode()).hexdigest()
+
         metadata = {
             'model_type': self.model_type,
             'model_config': self.model_config,
             'best_params': self.best_params,
             'timestamp': timestamp,
-            'random_state': self.random_state
+            'random_state': self.random_state,
+            'config_hash': config_hash
         }
 
         metadata_path = os.path.join(self.output_dir, f"sl_model_{self.model_type}_{timestamp}_metadata.json")

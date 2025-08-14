@@ -6,6 +6,17 @@ help:  ## Display this help message
 	@echo "Available tasks:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
 
+.PHONY: test
+test: ## Run all tests and linters
+ruff check src tests
+black --check src tests
+mypy src tests
+pytest
+
+.PHONY: ci
+ci: test ## Run all CI checks
+$(MAKE) docs
+
 # Backtesting task
 .PHONY: backtest
 backtest: data/large_sample_data.parquet  ## Run the backtesting process

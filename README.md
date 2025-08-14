@@ -44,22 +44,83 @@ https://zzzzero-hash.github.io/trade-agent/
 
 ### Getting Started
 
-Prerequisites:
+This section outlines the steps to set up and run the `trade-agent` project.
 
-- Python 3.10+ (confirm via `python --version`)
-- (Optional) Make for easier task execution
+#### Prerequisites
 
-Install dependencies:
+Ensure you have the following installed on your system:
 
-```
-pip install -e .
-```
+- **Python**: Version 3.10 or higher. You can verify your Python version by running:
+  ```bash
+  python --version
+  ```
+- **Poetry**: For dependency management. Install it using pip:
+  ```bash
+  pip install poetry
+  ```
+- **Make** (Optional): For easier execution of common development and documentation tasks.
 
-Verify environment (run a quick docs build & lint step if defined):
+#### Installation
 
-```
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/zzzzero-hash/trade-agent.git
+    cd trade-agent
+    ```
+2.  **Install dependencies using Poetry**:
+    ```bash
+    poetry install
+    ```
+    This command will create a virtual environment and install all project dependencies.
+3.  **Activate the virtual environment**:
+    ```bash
+    poetry shell
+    ```
+
+#### Verification
+
+To ensure your environment is set up correctly, you can run the documentation build and lint steps:
+
+```bash
 make docs
 ```
+
+This command will build the Sphinx documentation and perform linting checks. Any warnings will result in a build failure, ensuring documentation quality.
+
+### Usage Examples
+
+This section provides quick examples to get started with key functionalities. For more detailed examples and advanced configurations, please refer to the comprehensive documentation in the `docs/source/` directory.
+
+#### 1. Training a Supervised Learning Model
+
+To train a supervised learning model (e.g., Ridge Regression) using a predefined configuration:
+
+```bash
+poetry run python main.py train-sl --config configs/ridge_config.json
+```
+
+This command will:
+
+- Load data from `data/sample_data.parquet`.
+- Apply feature engineering.
+- Train a Ridge Regression model based on `configs/ridge_config.json`.
+- Save the trained model and its metadata to the `models/` directory.
+
+#### 2. Running a Backtest
+
+To run a backtest with a trained model:
+
+```bash
+poetry run python scripts/run_backtest.py --model-path models/sl_model_ridge_20250811_164323.pkl --config configs/ridge_config.json
+```
+
+_Note: Replace `sl_model_ridge_20250811_164323.pkl` with the actual path to your trained model._
+
+This command will:
+
+- Load the specified trained model.
+- Execute a backtest using historical data.
+- Generate a backtest report in the `reports/` directory.
 
 ### Data & Features
 
@@ -147,3 +208,15 @@ For deeper architectural details, diagrams, and module-level guides visit the fu
 https://zzzzero-hash.github.io/trade-agent/
 
 Happy experimenting.
+
+## How We Evaluate
+
+Our trading agent's performance is rigorously evaluated against a set of key metrics and acceptance thresholds to ensure robustness and profitability. We consider the following criteria:
+
+- **Sharpe Ratio**: A measure of risk-adjusted return. We aim for a Sharpe Ratio of **1.5 or higher** on out-of-sample data.
+- **Turnover**: The rate at which positions are opened and closed. High turnover can lead to increased transaction costs. We target a maximum daily turnover of **20%** of the portfolio value.
+- **Drawdown Brakes**: Mechanisms to limit potential losses.
+  - **Maximum Drawdown**: The largest peak-to-trough decline in the portfolio value. We require a maximum drawdown of **no more than 15%**.
+  - **Daily Drawdown Limit**: A threshold for daily losses. If the daily drawdown exceeds **5%**, trading activity is paused or reduced.
+
+These thresholds are subject to adjustment based on market conditions and strategic objectives.

@@ -25,3 +25,8 @@ Supervised Learning Models
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: sl.models.factory
+   :members:
+   :undoc-members:
+   :show-inheritance:
