@@ -14,6 +14,7 @@
 
 # Devcontainer build files
 .devcontainer/
+devcontainer/
 Dockerfile
 
 # Node modules

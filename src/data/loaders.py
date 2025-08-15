@@ -19,6 +19,8 @@ def load_ohlcv_data(
     sort_by_date: bool = True,
     drop_duplicates: bool = True,
     forward_fill: bool = True,
+    file_format: str = "auto",
+    compression: str = "snappy"
 ) -> pd.DataFrame:
     """
     Load OHLCV data from a CSV file with data cleaning and validation.

@@ -6,10 +6,9 @@ import json
 import os
 import warnings
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import numpy as np
-import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import TimeSeriesSplit
 
@@ -21,6 +20,8 @@ except ImportError:
     # Fallback for development environment
     from src.sl.models.base import set_all_seeds
     from src.sl.models.factory import SLModelFactory
+
+from src.sl.config_loader import BaseConfig, load_config
 
 
 class TemporalCV:
@@ -190,20 +191,24 @@ class HyperparameterTuner:
 class SLTrainingPipeline:
     """Supervised learning training pipeline."""
 
-    def __init__(self, config: dict[str, Any]):
+    def __init__(self, config: Union[dict[str, Any], BaseConfig]):
         """
         Initialize training pipeline.
 
         Args:
-            config (Dict[str, Any]): Configuration for the pipeline
+            config (Union[Dict[str, Any], BaseConfig]): Configuration for the pipeline
         """
-        self.config = config
-        self.model_type = config.get('model_type', 'ridge')
-        self.model_config = config.get('model_config', {})
-        self.cv_config = config.get('cv_config', {'n_splits': 5, 'gap': 0})
-        self.tuning_config = config.get('tuning_config', {})
-        self.random_state = config.get('random_state', 42)
-        self.output_dir = config.get('output_dir', 'models/')
+        if isinstance(config, dict):
+            self.config = load_config(config)
+        else:
+            self.config = config
+
+        self.model_type = self.config.model_type
+        self.model_config = self.config.model_settings
+        self.cv_config = self.config.cv_config
+        self.tuning_config = self.config.tuning_config
+        self.random_state = self.config.random_state
+        self.output_dir = self.config.output_dir
 
         # Set seeds for deterministic processing
         set_all_seeds(self.random_state)
@@ -377,12 +382,12 @@ class SLTrainingPipeline:
         self.model.save_model(model_path)
 
         # Save model metadata
-        config_json = json.dumps(self.model_config, sort_keys=True)
+        config_json = json.dumps(self.config.model_settings, sort_keys=True)
         config_hash = hashlib.sha256(config_json.encode()).hexdigest()
 
         metadata = {
             'model_type': self.model_type,
-            'model_config': self.model_config,
+            'model_settings': self.config.model_settings,
             'best_params': self.best_params,
             'timestamp': timestamp,
             'random_state': self.random_state,
@@ -395,59 +400,3 @@ class SLTrainingPipeline:
 
         print(f"Model saved to {model_path}")
         print(f"Metadata saved to {metadata_path}")
-
-
-def train_model_from_config(config_path: str,
-                           data_path: str,
-                           target_column: str) -> dict[str, Any]:
-    """
-    Train a model using configuration file and data.
-
-    Args:
-        config_path (str): Path to configuration file
-        data_path (str): Path to training data
-        target_column (str): Name of target column
-
-    Returns:
-        Dict[str, Any]: Training results
-    """
-    # Load configuration
-    with open(config_path) as f:
-        config = json.load(f)
-
-    # Load data
-    if data_path.endswith('.parquet'):
-        df = pd.read_parquet(data_path)
-    elif data_path.endswith('.csv'):
-        df = pd.read_csv(data_path)
-    else:
-        raise ValueError(f"Unsupported data format: {data_path}")
-
-    # Separate features and target
-    y = df[target_column].values
-    # Drop all target columns from features
-    target_columns = [col for col in df.columns if col in ['mu_hat', 'sigma_hat']]
-    X = df.drop(columns=target_columns).values
-
-    # Create and run training pipeline
-    pipeline = SLTrainingPipeline(config)
-    results = pipeline.train(X, y)
-
-    return results
-
-
-if __name__ == "__main__":
-    # Example usage
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Train supervised learning model")
-    parser.add_argument("--config", required=True, help="Path to configuration file")
-    parser.add_argument("--data", required=True, help="Path to training data")
-    parser.add_argument("--target", required=True, help="Target column name")
-
-    args = parser.parse_args()
-
-    results = train_model_from_config(args.config, args.data, args.target)
-
-    print("Training completed successfully!")
-    print(f"Results: {results}")

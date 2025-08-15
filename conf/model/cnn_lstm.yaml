@@ -1,0 +1,28 @@
+model_type: cnn_lstm
+model_config:
+  input_size: 17
+  cnn_channels: [64, 128]
+  cnn_kernel_sizes: [5, 3]
+  lstm_hidden_size: 128
+  lstm_num_layers: 2
+  output_size: 1
+  dropout: 0.2
+  sequence_length: 10
+  epochs: 10
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  random_state: ${random_state}
+cv_config:
+  n_splits: 3
+  gap: 10
+
+tuning_config:
+  enable_tuning: false
+  scoring_metric: neg_mean_squared_error
+  param_grid:
+    lstm_hidden_size: [32, 64]
+    lstm_num_layers: [1, 2]
+    learning_rate: [0.001, 0.01]
+    dropout: [0.1, 0.2]
+  n_trials: 8

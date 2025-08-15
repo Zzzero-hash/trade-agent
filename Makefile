@@ -46,3 +46,11 @@ docs-live:  ## Auto-reload Sphinx docs (requires sphinx-autobuild)
 .PHONY: docs-clean
 docs-clean:  ## Remove built documentation
 	rm -rf docs/_build
+
+# Hydra-based supervised learning training
+.PHONY: train-hydra
+train-hydra:  ## Run a Hydra-configured SL training (override MODEL=ridge DATA=... TARGET=...)
+	@MODEL?=ridge
+	@DATA?=data/sample_data.parquet
+	@TARGET?=close
+	python scripts/train_sl_hydra.py model=$${MODEL} train.data_path=$${DATA} train.target=$${TARGET}

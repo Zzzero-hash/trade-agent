@@ -27,7 +27,7 @@ https://zzzzero-hash.github.io/trade-agent/
 ### Repository Layout
 
 ```
-├── configs/             # JSON configs for models & agents
+├── conf/                # Hydra configuration hierarchy (YAML)
 ├── data/                # Sample / cached feature & label data (parquet / csv)
 ├── docs/                # Sphinx documentation source (built to GitHub Pages)
 ├── models/              # Serialized trained model artifacts + metadata
@@ -128,7 +128,7 @@ Sample parquet / csv files are included under `data/` for experimentation. In pr
 
 ### Supervised Models
 
-Models are configured via JSON in `configs/` and saved to `models/` with paired `*_metadata.json` for reproducibility. Extend training scripts to add new model families (tree-based, transformers, probabilistic, etc.).
+Models are configured via YAML in `conf/model/` using Hydra and saved to `models/` with complete configuration snapshots. See [LEGACY_CLEANUP.md](LEGACY_CLEANUP.md) for migrating from JSON configs. Extend training scripts to add new model families (tree-based, transformers, probabilistic, etc.).
 
 ### Reinforcement Learning
 
@@ -157,7 +157,111 @@ Published automatically to GitHub Pages via CI (multi-version enabled if branche
 
 ### Configuration
 
-Central configs are JSON under `configs/`. Favor explicit, version-controlled configuration objects for reproducibility. Consider layering (base + override) or Hydra integration as complexity grows.
+> **Warning**
+> **Legacy Configuration Deprecation Notice**
+> JSON configs in `configs/` are being phased out in favor of Hydra YAML configurations.
+> See [LEGACY_CLEANUP.md](LEGACY_CLEANUP.md) for migration details and timeline.
+
+Central configs are moving to YAML under `conf/`. Favor explicit, version-controlled configuration objects for reproducibility using Hydra's compositional patterns.
+
+### Hydra + Optuna Configuration Blueprint (Active)
+
+Goal: Transition from ad-hoc JSON configs and manual argument parsing to a fully
+composable, reproducible, and optimizable configuration system using
+[Hydra](https://github.com/facebookresearch/hydra) plus Optuna sweeps for
+adaptive hyperparameter search.
+
+Objectives:
+
+1. Single-source-of-truth hierarchical config (`conf/` directory) separating
+   model families, data paths, CV settings, tuning, and runtime.
+2. CLI composability: `python scripts/train_sl_hydra.py model=mlp train.data_path=...`.
+3. Deterministic run directories capturing the resolved config + results.
+4. Backwards compatibility: existing `SLTrainingPipeline` keeps consuming the
+   same dict schema (bridge layer converts Hydra cfg -> legacy dict).
+5. Two search modes:
+   - Native Hydra multirun (cartesian / list) for small discrete grids.
+   - Optuna sweeper (TPE by default) for adaptive continuous + categorical.
+6. Metric feedback loop: training script returns objective (e.g. train / val
+   MSE; later replace with CV or validation metric).
+7. Future: multi-objective (e.g. minimize MSE, maximize R²) and pruning.
+
+Current State (this branch):
+
+- Added `conf/config.yaml` (base) + `conf/model/*.yaml` per model family.
+- Added Optuna sweeper stub: `conf/hydra/sweeper/optuna.yaml`.
+- New entrypoint: `scripts/train_sl_hydra.py` (returns train MSE).
+- Make target (to be added) will wrap common invocation.
+
+Planned Enhancements (tracked for iterative completion):
+
+- [ ] Provide dedicated search space YAML examples (instead of long CLI).
+- [ ] Add validation / CV metric as objective (replace train MSE when available).
+- [ ] Introduce schema / dataclass typing for stronger validation.
+- [ ] Capture artifacts: model + metrics + Optuna trial params in a unified
+      run folder (Hydra output dir synergy).
+- [ ] Add multi-objective Optuna example (e.g., MSE vs model complexity proxy).
+- [ ] Early stopping/pruning integration (ASHA or MedianPruner) once validation
+      loop is formalized.
+- [ ] Test harness ensuring Hydra entrypoint executes with sample data.
+
+Usage Quickstart:
+
+Single run (ridge):
+
+```bash
+python scripts/train_sl_hydra.py model=ridge train.data_path=data/sample_data.parquet \
+  train.target=close
+```
+
+Cartesian sweep (ridge alpha + random_state):
+
+```bash
+python scripts/train_sl_hydra.py -m model=ridge model_config.alpha=0.1,1.0,10.0 \
+  random_state=42,1337
+```
+
+Optuna sweep example (alpha float range):
+
+```bash
+python scripts/train_sl_hydra.py -m hydra/sweeper=optuna \
+  hydra.sweeper.search_space.model.alpha.type=float \
+  hydra.sweeper.search_space.model.alpha.low=1e-4 \
+  hydra.sweeper.search_space.model.alpha.high=10.0 \
+  optuna.n_trials=20 model=ridge
+```
+
+Using a predefined search space include (preferred for reuse):
+
+```bash
+python scripts/train_sl_hydra.py -m hydra/sweeper=optuna \
+  +search_space=ridge_alpha model=ridge optuna.n_trials=25
+```
+
+Artifacts:
+
+- `models/` — trained model & metadata (legacy behavior retained).
+- `models/last_resolved_hydra_config.yaml` — last composed Hydra config.
+- `models/last_results.json` — metrics emitted by pipeline.
+
+Design Notes:
+
+- Bridge approach avoids refactoring existing training internals now; later we
+  can migrate pipeline constructor to accept structured dataclasses.
+- Search space is intentionally CLI-driven initially to minimize config churn;
+  next iteration introduces optional `conf/search_space/*.yaml` include files.
+- Objective currently train MSE for continuity; a temporal CV or hold-out
+  metric will replace it before enabling pruning strategies.
+
+Limitations (acknowledged):
+
+- No schema enforcement yet (risk of silent typos) — planned dataclass layer.
+- No separate run directories per trial (Hydra default suppressed by writing
+  artifacts to static `models/` path) — consider enabling per-run subdirs.
+- Optuna storage in-memory only (no persistence) unless `optuna.storage` set.
+
+Contributions / Feedback: open issues proposing desired search dimensions,
+additional metrics, or integration with experiment trackers (e.g. MLflow).
 
 ### Logging & Outputs
 

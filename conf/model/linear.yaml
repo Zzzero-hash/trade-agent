@@ -1,0 +1,8 @@
+model_type: linear
+model_config: {}
+cv_config:
+  n_splits: ${cv.n_splits}
+  gap: ${cv.gap}
+
+tuning_config:
+  enable_tuning: false

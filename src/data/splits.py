@@ -19,7 +19,8 @@ def purged_walk_forward_splits(
     train_ratio: float = 0.6,
     val_ratio: float = 0.2,
     test_ratio: float = 0.2,
-    gap_ratio: float = 0.05,
+    min_gap: int = 5,
+    max_gap: int = 21,
     fixed_seed: int = 42
 ) -> Generator[tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame], None, None]:
     """
@@ -73,7 +74,7 @@ def purged_walk_forward_splits(
     split_size = total_length // n_splits
 
     # Calculate gap size
-    gap_size = int(split_size * gap_ratio)
+    gap_size = min_gap  # Use defined min_gap parameter instead of undefined gap_ratio
 
     # Generate splits
     for i in range(n_splits):

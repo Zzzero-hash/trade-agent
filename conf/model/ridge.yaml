@@ -1,0 +1,15 @@
+model_type: ridge
+model_config:
+  alpha: 1.0
+  random_state: ${random_state}
+cv_config:
+  n_splits: ${cv.n_splits}
+  gap: ${cv.gap}
+
+# Legacy tuner grid
+tuning_config:
+  enable_tuning: true
+  scoring_metric: neg_mean_squared_error
+  param_grid:
+    alpha: [0.1, 1.0, 10.0, 100.0]
+  n_trials: 20
