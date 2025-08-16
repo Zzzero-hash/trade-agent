@@ -21,7 +21,7 @@ except ImportError:
     from src.sl.models.base import set_all_seeds
     from src.sl.models.factory import SLModelFactory
 
-from src.sl.config_loader import BaseConfig, load_config
+from src.sl.config_loader import SLConfig, load_config
 
 
 class TemporalCV:
@@ -191,12 +191,12 @@ class HyperparameterTuner:
 class SLTrainingPipeline:
     """Supervised learning training pipeline."""
 
-    def __init__(self, config: Union[dict[str, Any], BaseConfig]):
+    def __init__(self, config: Union[dict[str, Any], SLConfig]):
         """
         Initialize training pipeline.
 
         Args:
-            config (Union[Dict[str, Any], BaseConfig]): Configuration for the pipeline
+            config (Union[Dict[str, Any], SLConfig]): Config for the pipeline
         """
         if isinstance(config, dict):
             self.config = load_config(config)
@@ -204,7 +204,11 @@ class SLTrainingPipeline:
             self.config = config
 
         self.model_type = self.config.model_type
-        self.model_config = self.config.model_settings
+        # Backward compatibility: some tests/configs may use 'model_config'
+        self.model_config = getattr(
+            self.config, 'model_settings',
+            getattr(self.config, 'model_config', {})
+        )
         self.cv_config = self.config.cv_config
         self.tuning_config = self.config.tuning_config
         self.random_state = self.config.random_state
@@ -255,7 +259,8 @@ class SLTrainingPipeline:
         results = self._evaluate_model(X, y, X_val, y_val)
 
         # Save model if configured
-        if self.config.get('save_model', True):
+        save_flag = getattr(self.config, 'save_model', True)
+        if save_flag:
             self._save_model()
 
         return results
@@ -400,3 +405,43 @@ class SLTrainingPipeline:
 
         print(f"Model saved to {model_path}")
         print(f"Metadata saved to {metadata_path}")
+
+
+def train_model_from_config(
+    config_path: str,
+    data_path: str,
+    target_column: str = "mu_hat",
+) -> dict[str, Any]:
+    """Utility to load JSON config, train model, and return results.
+
+    Args:
+        config_path: Path to JSON config (legacy style) defining model settings.
+        data_path: Path to parquet features file.
+        target_column: Name of target column in features.
+
+    Returns:
+        Training results dictionary with metrics.
+    """
+    with open(config_path) as f:
+        raw_cfg = json.load(f)
+
+    # Backward compatibility field mapping
+    if "model_config" in raw_cfg and "model_settings" not in raw_cfg:
+        raw_cfg["model_settings"] = raw_cfg.pop("model_config")
+
+    # Load & validate config
+    sl_config = load_config(raw_cfg)
+
+    # Load data
+    import pandas as pd  # local import to keep top-level light
+    df = pd.read_parquet(data_path)
+    if target_column not in df.columns:
+        raise ValueError(
+            f"Target column '{target_column}' not found in data columns: {list(df.columns)[:10]}..."
+        )
+    y = df[target_column].to_numpy()
+    X = df.drop(columns=[target_column]).to_numpy()
+
+    pipeline = SLTrainingPipeline(sl_config)
+    results = pipeline.train(X, y)
+    return results

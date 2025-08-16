@@ -1,0 +1,30 @@
+cv_config:
+  embargo_days: 1
+  gap: 0
+  n_splits: 2
+  purge_days: 0
+  strategy: purged_time_series
+data_config:
+  data_path: data/sample_data.parquet
+  target_column: close
+  test_ratio: 0.2
+  train_ratio: 0.6
+  val_ratio: 0.2
+experiment_name: framework_test
+model_configs:
+  - model_params:
+      alpha: 1.0
+      random_state: 42
+    model_type: ridge
+    training_params: {}
+optimization_config:
+  enabled: false
+  metric: sharpe
+  n_trials: 100
+  pruner: median
+  sampler: tpe
+  storage: null
+  study_name: framework_test_study
+output_dir: experiments
+random_state: 42
+save_models: true
