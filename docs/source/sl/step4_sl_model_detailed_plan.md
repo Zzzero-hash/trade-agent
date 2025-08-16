@@ -158,7 +158,7 @@ class PyTorchSLModel(SLBaseModel):
 
 To prevent data leakage in time-series forecasting, we implement temporal cross-validation:
 
-```mermaid
+```{mermaid}
 graph LR
     A[Training Set 1] --> B[Validation Set 1]
     B --> C[Training Set 2] --> D[Validation Set 2]
@@ -385,7 +385,7 @@ src/sl/
 
 The SL model integrates with the feature engineering pipeline as follows:
 
-```mermaid
+```{mermaid}
 graph TD
     A[Raw Market Data] --> B[Data Cleaning]
     B --> C[Feature Engineering]

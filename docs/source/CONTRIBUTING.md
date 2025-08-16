@@ -40,10 +40,10 @@ Welcome to the Trade Agent project! We appreciate your interest in contributing 
 
 ## Code of Conduct
 
-By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). We expect all interactions to be respectful and constructive.
+By participating in this project, you agree to abide by our [Code of Conduct](https://github.com/trading-rl-platform/trading-rl-agent/blob/main/CODE_OF_CONDUCT.md). We expect all interactions to be respectful and constructive.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/trading-rl-platform/trading-rl-agent/blob/main/LICENSE) file for more details.
 
 We look forward to your contributions!

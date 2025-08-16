@@ -19,11 +19,15 @@ Contents
    file_tree_structure
    data_pipeline_dag
    ray_parallelization_plan
+   docs_maintenance
+   CONTRIBUTING
+   main_py_plan
 
 .. toctree::
    :maxdepth: 2
    :caption: Agents
 
+   agents/ppo_agent
    agents/ppo_agent_summary
    agents/ppo_agent_detailed_plan
    agents/ppo_agent_acceptance_tests
@@ -32,6 +36,7 @@ Contents
    agents/ppo_agent_rollback_plan
    agents/ppo_configuration
    agents/ppo_file_tree_structure
+   agents/sac_agent
    agents/sac_agent_summary
    agents/sac_agent_detailed_plan
    agents/sac_agent_acceptance_tests
@@ -122,6 +127,7 @@ Contents
    eval/acceptance_tests
    eval/rollback_plan
    eval/usage_guide
+   eval/execution_backtesting
 
 .. toctree::
    :maxdepth: 2

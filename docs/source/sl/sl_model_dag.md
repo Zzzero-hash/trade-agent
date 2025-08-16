@@ -4,7 +4,7 @@
 
 ### 1.1 Core Implementation Nodes
 
-```mermaid
+```{mermaid}
 graph TD
     A[Project Setup] --> B[Directory Structure Creation]
     B --> C[Base Model Implementation]
@@ -26,7 +26,7 @@ graph TD
 
 ### 1.2 Training Pipeline Nodes
 
-```mermaid
+```{mermaid}
 graph TD
     A[Cross-Validation Implementation] --> B[Hyperparameter Tuning]
     B --> C[Model Selection]
@@ -38,7 +38,7 @@ graph TD
 
 ### 1.3 Evaluation Pipeline Nodes
 
-```mermaid
+```{mermaid}
 graph TD
     A[Metrics Implementation] --> B[Backtesting Framework]
     B --> C[Uncertainty Quantification]
@@ -50,7 +50,7 @@ graph TD
 
 ### 1.4 Persistence Pipeline Nodes
 
-```mermaid
+```{mermaid}
 graph TD
     A[Versioning System] --> B[Model Registry]
 
@@ -60,7 +60,7 @@ graph TD
 
 ### 1.5 Pipeline Integration Nodes
 
-```mermaid
+```{mermaid}
 graph TD
     A[Forecasting Pipeline] --> B[End-to-End Integration]
 
@@ -70,7 +70,7 @@ graph TD
 
 ## 2. Complete SL Model Implementation DAG
 
-```mermaid
+```{mermaid}
 graph TD
     A[Project Setup] --> B[Directory Structure Creation]
     B --> C[Base Model Implementation]
@@ -122,7 +122,7 @@ graph TD
 
 ## 3. Testing and Deployment DAG
 
-```mermaid
+```{mermaid}
 graph TD
     A[Implementation Complete] --> B[Unit Testing]
     B --> C[Integration Testing]
@@ -164,7 +164,7 @@ graph TD
 
 ### 4.3 Integration with Overall System
 
-```mermaid
+```{mermaid}
 graph TD
     A[Data Pipeline] --> B[Feature Engineering]
     B --> C[SL Model Training]

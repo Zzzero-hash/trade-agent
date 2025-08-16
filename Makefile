@@ -8,14 +8,14 @@ help:  ## Display this help message
 
 .PHONY: test
 test: ## Run all tests and linters
-ruff check src tests
-black --check src tests
-mypy src tests
-pytest
+	ruff check src tests
+	black --check src tests
+	mypy src tests
+	pytest
 
 .PHONY: ci
 ci: test ## Run all CI checks
-$(MAKE) docs
+	$(MAKE) docs
 
 # Backtesting task
 .PHONY: backtest
@@ -29,8 +29,12 @@ data/large_sample_data.parquet:
 
 # Documentation build
 .PHONY: docs
-docs:  ## Build Sphinx documentation into docs/_build/html (warnings as errors)
-	@sphinx-build -W -b html docs/source docs/_build/html
+WARNINGS_AS_ERRORS ?= 1
+
+docs:  ## Build Sphinx documentation into docs/_build/html (set WARNINGS_AS_ERRORS=0 to ignore warnings)
+	@echo "Building docs (WARNINGS_AS_ERRORS=$(WARNINGS_AS_ERRORS))"
+	@EXTRA=""; if [ "$(WARNINGS_AS_ERRORS)" = "1" ]; then EXTRA="-W"; fi; \
+		sphinx-build $$EXTRA -b html docs/source docs/_build/html
 	@echo "Docs built at docs/_build/html/index.html"
 
 .PHONY: docs-versions
@@ -49,8 +53,9 @@ docs-clean:  ## Remove built documentation
 
 # Hydra-based supervised learning training
 .PHONY: train-hydra
-train-hydra:  ## Run a Hydra-configured SL training (override MODEL=ridge DATA=... TARGET=...)
-	@MODEL?=ridge
-	@DATA?=data/sample_data.parquet
-	@TARGET?=close
-	python scripts/train_sl_hydra.py model=$${MODEL} train.data_path=$${DATA} train.target=$${TARGET}
+MODEL ?= ridge
+DATA ?= data/sample_data.parquet
+TARGET ?= close
+
+train-hydra:  ## Run a Hydra-configured SL training (override with `make train-hydra MODEL=ridge DATA=... TARGET=...`)
+	python scripts/train_sl_hydra.py model=$(MODEL) train.data_path=$(DATA) train.target=$(TARGET)

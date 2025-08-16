@@ -94,7 +94,7 @@ graph LR
 
 ## Model Training Pipeline
 
-```mermaid
+```{mermaid}
 graph TD
     A[Feature Data] --> B[Target Construction]
     B --> C[Train/Validation Split]

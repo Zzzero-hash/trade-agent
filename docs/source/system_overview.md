@@ -4,7 +4,7 @@ This document outlines the complete trading system architecture, which follows a
 
 ## System Architecture Diagram
 
-````mermaid
+````{mermaid}
 graph TD
     A[Market Data<br/>OHLCV, ticks] --> B[Data/Features<br/>Clean, engineer]
     B --> C[SL Forecasters<br/>E[r], σ, probs]
@@ -24,7 +24,7 @@ graph TD
 
 ## Detailed Module Structure
 
-````mermaid
+````{mermaid}
 graph TD
     A[trade-agent Project]
     A --> B[data Package]
