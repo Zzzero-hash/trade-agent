@@ -17,6 +17,10 @@ import pandas as pd
 from gymnasium import spaces
 
 from src.sl.models.base import set_all_seeds
+from src.envs.observation_schema import (
+    compute_observation_schema,
+    save_observation_schema,
+)
 
 
 class TradingEnvironment(gym.Env):
@@ -40,7 +44,9 @@ class TradingEnvironment(gym.Env):
         transaction_cost: float = 0.001,
         seed: int = 42,
         window_size: int = 30,
-        reward_config: dict = None
+        reward_config: dict = None,
+        include_targets: bool = True,
+        schema_report_path: str | None = None,
     ):
         """
         Initialize the trading environment.
@@ -67,12 +73,36 @@ class TradingEnvironment(gym.Env):
         # Reward configuration
         self.reward_config = reward_config or {}
         self.pnl_weight = self.reward_config.get('pnl_weight', 1.0)
-        self.transaction_cost_weight = self.reward_config.get('transaction_cost_weight', 1.0)
-        self.risk_adjustment_weight = self.reward_config.get('risk_adjustment_weight', 0.0)
-        self.stability_penalty_weight = self.reward_config.get('stability_penalty_weight', 0.0)
+        self.transaction_cost_weight = self.reward_config.get(
+            'transaction_cost_weight', 1.0
+        )
+        self.risk_adjustment_weight = self.reward_config.get(
+            'risk_adjustment_weight', 0.0
+        )
+        self.stability_penalty_weight = self.reward_config.get(
+            'stability_penalty_weight', 0.0
+        )
 
         # Load data
         self._load_data(data_file)
+
+        # Observation schema validation (defense in depth)
+        try:
+            import pandas as pd  # local import
+            df_preview = pd.read_parquet(data_file)
+            obs_schema = compute_observation_schema(
+                df_preview,
+                window_size=window_size,
+                include_targets=include_targets,
+            )
+            if include_targets and obs_schema.missing_targets:
+                raise ValueError(
+                    f"Missing target columns {obs_schema.missing_targets}"
+                )
+            if schema_report_path:
+                save_observation_schema(obs_schema, schema_report_path)
+        except Exception as e:  # pragma: no cover
+            print(f"[WARN] Observation schema check failed: {e}")
 
         # Environment state
         self.current_step = 0
@@ -82,14 +112,12 @@ class TradingEnvironment(gym.Env):
         self.last_price = 0.0  # Last known price
 
         # Action space: target net exposure in [-1, 1]
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
+        self.action_space = spaces.Box(
+            low=-1.0, high=1.0, shape=(1,), dtype=np.float32
+        )
 
         # Observation space: [feature_window_t, mu_hat_t, sigma_hat_t, position_{t-1}, cash/equity]
-        obs_dim = self.window_size * self.n_features + 4
-        # Use finite bounds for better compatibility with RL algorithms
-        obs_dim = self.window_size * self.n_features + 4
-        obs_dim = self.window_size * self.n_features + 4
-        obs_dim = self.window_size * self.n_features + 4
+    obs_dim = self.window_size * self.n_features + 4  # features window + targets + pos + cash/equity
         self.observation_space = spaces.Box(
             low=-1e6, high=1e6, shape=(obs_dim,), dtype=np.float32
         )

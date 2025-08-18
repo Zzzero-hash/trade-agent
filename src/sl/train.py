@@ -390,16 +390,49 @@ class SLTrainingPipeline:
         config_json = json.dumps(self.config.model_settings, sort_keys=True)
         config_hash = hashlib.sha256(config_json.encode()).hexdigest()
 
+    # Optional: extract data & schema hashes if data_path present
+        schema_hash = None
+        data_hash = None
+        n_rows = None
+        n_cols = None
+        data_path = getattr(self.config, 'data_path', None)
+        if data_path and os.path.exists(data_path):
+            try:
+                # local import to avoid dependency when unused
+                from src.data.schema import extract_schema
+
+                schema_result = extract_schema(
+                    data_path, sample_rows=1000
+                )
+                schema_hash = schema_result.schema_hash
+                data_hash = schema_result.data_hash
+                n_rows = schema_result.n_rows
+                n_cols = schema_result.n_cols
+            except Exception as e:  # broad but logged
+                print(
+                    f"[WARN] Schema extraction failed for {data_path}: {e}"
+                )
+
         metadata = {
             'model_type': self.model_type,
             'model_settings': self.config.model_settings,
             'best_params': self.best_params,
             'timestamp': timestamp,
             'random_state': self.random_state,
-            'config_hash': config_hash
+            'config_hash': config_hash,
+            'schema_hash': schema_hash,
+            'data_hash': data_hash,
+            'data_n_rows': n_rows,
+            'data_n_cols': n_cols,
+            'data_path': data_path,
         }
 
-        metadata_path = os.path.join(self.output_dir, f"sl_model_{self.model_type}_{timestamp}_metadata.json")
+        metadata_filename = (
+            f"sl_model_{self.model_type}_{timestamp}_metadata.json"
+        )
+        metadata_path = os.path.join(
+            self.output_dir, metadata_filename
+        )
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
 
@@ -415,7 +448,7 @@ def train_model_from_config(
     """Utility to load JSON config, train model, and return results.
 
     Args:
-        config_path: Path to JSON config (legacy style) defining model settings.
+    config_path: Path to JSON config defining model settings (legacy style).
         data_path: Path to parquet features file.
         target_column: Name of target column in features.
 
@@ -437,11 +470,18 @@ def train_model_from_config(
     df = pd.read_parquet(data_path)
     if target_column not in df.columns:
         raise ValueError(
-            f"Target column '{target_column}' not found in data columns: {list(df.columns)[:10]}..."
+            "Target column '{tc}' not found; first columns: {cols}".format(
+                tc=target_column, cols=list(df.columns)[:10]
+            )
         )
     y = df[target_column].to_numpy()
     X = df.drop(columns=[target_column]).to_numpy()
 
+    # Attach data_path so _save_model can extract schema/data hashes
+    try:
+        setattr(sl_config, 'data_path', data_path)
+    except Exception:
+        pass
     pipeline = SLTrainingPipeline(sl_config)
     results = pipeline.train(X, y)
     return results

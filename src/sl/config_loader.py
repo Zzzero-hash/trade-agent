@@ -19,6 +19,7 @@ class SLConfig(CoreConfig):
     model_settings: dict[str, Any]
     cv_config: dict[str, Any]
     tuning_config: dict[str, Any]
+    data_path: str | None = None  # optional path to originating feature file
 
 
 def load_config(config_input: Union[str, dict[str, Any]]) -> SLConfig:

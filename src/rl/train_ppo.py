@@ -25,7 +25,11 @@ import numpy as np
 import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
+from stable_baselines3.common.vec_env import (
+    DummyVecEnv,
+    SubprocVecEnv,
+    VecNormalize,
+)
 
 from src.eval.hyperopt import RobustHyperparameterOptimizer
 from src.eval.walkforward import WalkForwardConfig
@@ -34,39 +38,39 @@ from src.eval.walkforward import WalkForwardConfig
 sys.path.insert(0, os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))))
 
+from src.envs.observation_schema import (
+    compute_observation_schema,
+    save_observation_schema,
+)
 from src.envs.trading_env import TradingEnvironment  # noqa: E402
 from src.sl.models.base import set_all_seeds  # noqa: E402
 
 
 class EntropyCoefficientCallback(BaseCallback):
-    """
-    Callback for linear entropy coefficient decay during training.
+    """Linear decay of entropy coefficient if attribute present."""
 
-    Args:
-        initial_coef: Initial entropy coefficient
-        final_coef: Final entropy coefficient
-        total_timesteps: Total training timesteps
-    """
-
-    def __init__(self, initial_coef: float, final_coef: float, total_timesteps: int):
+    def __init__(
+        self, initial_coef: float, final_coef: float, total_timesteps: int
+    ):
         super().__init__()
         self.initial_coef = initial_coef
         self.final_coef = final_coef
         self.total_timesteps = total_timesteps
 
-    def _on_step(self) -> bool:
-        # Calculate current progress (0 to 1)
+    def _on_step(self) -> bool:  # type: ignore[override]
         progress = min(1.0, self.num_timesteps / self.total_timesteps)
-
-        # Linear decay
-        current_coef = self.initial_coef - progress * (self.initial_coef - self.final_coef)
-
-        # Update the model's entropy coefficient
-        if hasattr(self.model, "ent_coef") and hasattr(self.model, "set_parameters"):
-            self.model.ent_coef = current_coef
-        elif hasattr(self.model, 'ent_coef') and hasattr(self.model.ent_coef, 'set_value'):
-            self.model.ent_coef.set_value(current_coef)
-
+        current_coef = self.initial_coef - progress * (
+            self.initial_coef - self.final_coef
+        )
+        ent = getattr(self.model, "ent_coef", None)
+        # Some SB3 versions keep ent_coef as float; others as schedule/tensor
+        try:  # pragma: no cover - defensive
+            if hasattr(ent, "set_value"):
+                ent.set_value(current_coef)
+            elif isinstance(ent, (float, int)):
+                setattr(self.model, "ent_coef", current_coef)
+        except Exception:
+            pass
         return True
 
 
@@ -122,6 +126,39 @@ class PPOTrainer:
         """
         # Load data
         df = pd.read_parquet(data_file)
+
+        # Observation schema validation (before train/val split)
+        window_size = window_size  # param already provided
+        include_targets = True  # current design expects mu_hat & sigma_hat
+        schema = compute_observation_schema(
+            df, window_size=window_size, include_targets=include_targets
+        )
+        os.makedirs("reports", exist_ok=True)
+        schema_path = os.path.join(
+            "reports", f"observation_schema_{window_size}.json"
+        )
+        try:
+            save_observation_schema(schema, schema_path)
+        except Exception as e:  # pragma: no cover - non critical
+            print(f"[WARN] Failed to save observation schema: {e}")
+
+        print(
+            "[OBS-SCHEMA] window_size={ws} n_features={nf} expected_dim={ed} "
+            "has_mu_hat={hm} has_sigma_hat={hs} missing={missing}".format(
+                ws=window_size,
+                nf=schema.n_features,
+                ed=schema.expected_dim,
+                hm=schema.has_mu_hat,
+                hs=schema.has_sigma_hat,
+                missing=schema.missing_targets,
+            )
+        )
+        if include_targets and schema.missing_targets:
+            raise ValueError(
+                "Missing required target columns: {m}".format(
+                    m=schema.missing_targets
+                )
+            )
 
         # Split data into train and validation sets
         split_index = int(len(df) * (1 - validation_split))
