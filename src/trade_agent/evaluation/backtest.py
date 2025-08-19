@@ -1,19 +1,37 @@
 """Vectorised backtest utility.
 
-This module provides a *pure functional* style backtest for rapid iteration.
-It complements (does not replace) the richer OO engine in
-``trade_agent.eval.backtest``.
+This module provides a *pure functional* style backtest for rapid iteration
+and testability. It complements (does not replace) any richer OO engine.
 
-Design choices:
-* Signals represent target position fraction of capital (e.g. 1 = 100% long).
-* Returns are computed as ``prev_position * price_pct_change``.
+Key design points
+-----------------
+* Signals represent target position *fraction of capital* (1.0 == 100% long,
+    -1.0 == 100% short). Think of them as *desired* end‑of‑bar exposures.
+* Strategy (gross) return for bar ``t`` uses the position held *during* that
+    bar, which is the (already applied) signal at ``t-1``.
 * Transaction costs & slippage are modelled as proportional (bps style)
-  penalties applied on *notional turnover* (absolute position change).
-* All computations are vectorised; no iterative Python loops over rows.
+    penalties on *turnover* (absolute position change). Both ``fee_rate`` and
+    ``slippage`` are simple additive proportional costs.
+* Positions are clipped to ``[-max_leverage, max_leverage]`` (hard risk guard).
+* All computations are fully vectorised with Pandas / NumPy.
+
+Returned fields
+---------------
+prices: original aligned prices
+signals: clipped target signals
+positions: effective position per bar (== signals here, but separated for
+        future flexibility)
+gross_returns: pre‑cost strategy returns
+turnover: absolute change in position each bar
+trading_cost: per‑bar proportional cost ( (fee_rate+slippage)*turnover )
+returns: net returns after costs
+equity_curve: cumulative equity indexed to 1.0
+metrics: dictionary from :func:`compute_metrics`
 """
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 import pandas as pd
 
@@ -34,34 +52,43 @@ def run_backtest(
     fee_rate: float = 0.0,
     slippage: float = 0.0,
     max_leverage: float = 1.0,
-) -> Mapping[str, object]:
+) -> Mapping[str, Any]:
     """Execute a vectorised backtest.
 
-    Args:
-        prices: Price series (must be sortable index; irregular gaps allowed).
-        signals: Target position fraction in [-max_leverage, max_leverage].
-        fee_rate: Proportional transaction cost applied to *change* in
-            position (e.g. 0.001 = 10 bps round turn approximately if flip).
-        slippage: Additional proportional cost on turnover (modelled same as
-            fee_rate for simplicity).
-        max_leverage: Maximum absolute position allowed; signals are clipped.
+    Parameters
+    ----------
+    prices : pd.Series
+        Price series (must be sortable index; irregular gaps allowed).
+    signals : pd.Series
+        Target position fraction in ``[-max_leverage, max_leverage]``.
+    fee_rate : float, default 0.0
+        Proportional transaction fee applied to absolute position change.
+    slippage : float, default 0.0
+        Additional proportional cost (simple linear model) applied to turnover.
+    max_leverage : float, default 1.0
+        Hard clip bound for absolute position size.
 
-    Returns:
-        Dict with keys: prices, signals (post‑clip), positions, returns,
-        equity_curve, metrics (dict).
+    Returns
+    -------
+    Mapping[str, Any]
+        Dictionary containing prices, signals, positions, gross_returns,
+        turnover, trading_cost, returns (net), equity_curve and metrics.
     """
-    if prices is None or signals is None:
-        raise ValueError("prices and signals must be provided")
-    if not isinstance(prices, pd.Series) or not isinstance(signals, pd.Series):
+    # Basic defensive checks (types enforced by signature in most call paths).
+    if not isinstance(prices, pd.Series) or not isinstance(signals, pd.Series):  # type: ignore[unreachable]
         raise TypeError("prices and signals must be pandas Series")
     if prices.empty:
+        empty_series = pd.Series(dtype=float)
         return {
             "prices": prices,
             "signals": signals,
-            "positions": pd.Series(dtype=float),
-            "returns": pd.Series(dtype=float),
-            "equity_curve": pd.Series(dtype=float),
-            "metrics": compute_metrics(pd.Series(dtype=float)),
+            "positions": empty_series,
+            "gross_returns": empty_series,
+            "turnover": empty_series,
+            "trading_cost": empty_series,
+            "returns": empty_series,
+            "equity_curve": empty_series,
+            "metrics": compute_metrics(empty_series),
         }
 
     prices, signals = _align(prices.sort_index(), signals)
@@ -80,10 +107,13 @@ def run_backtest(
 
     equity_curve = (1.0 + net_returns).cumprod()
 
-    result: MutableMapping[str, object] = {
+    result: MutableMapping[str, Any] = {
         "prices": prices,
         "signals": clipped_signals,
         "positions": positions,
+        "gross_returns": gross_returns,
+        "turnover": turnover,
+        "trading_cost": trading_cost,
         "returns": net_returns,
         "equity_curve": equity_curve,
     }

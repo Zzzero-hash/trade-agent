@@ -13,6 +13,8 @@ def test_backtest_basic_long_trend() -> None:
     metrics = result["metrics"]
     assert metrics["pnl"] > 0
     assert metrics["max_drawdown"] <= 0
+    for key in ["gross_returns", "turnover", "trading_cost"]:
+        assert key in result
 
 
 def test_backtest_flat_prices_costs_negative_pnl() -> None:

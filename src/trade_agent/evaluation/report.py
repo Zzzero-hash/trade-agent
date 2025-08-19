@@ -1,7 +1,15 @@
-"""Reporting utilities for vectorised backtest results."""
+"""Reporting utilities for vectorised backtest results.
+
+Adds convenience writer ``write_report`` which materialises a structured
+artifact directory:
+``reports/<run_id>/{summary.json,trades.csv,report.html?}``.
+The run identifier can be user supplied or auto‑generated (UUID4) for
+traceability in experiment workflows.
+"""
 from __future__ import annotations
 
 import json
+import uuid
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -27,7 +35,7 @@ def generate_report(
     equity_curve = result.get("equity_curve")
     if isinstance(equity_curve, pd.Series):
         final_equity = (
-            float(equity_curve.iloc[-1]) if not equity_curve.empty else 1.0
+            float(equity_curve.iloc[-1]) if not equity_curve.empty else 1.0  # type: ignore[index]
         )
         num_periods = int(len(equity_curve))
     else:
@@ -79,4 +87,77 @@ th {{ background: #f5f5f5; }}
     return body.replace("{json}", json.dumps(summary, indent=2))
 
 
-__all__ = ["generate_report"]
+def write_report(
+    result: Mapping[str, Any],
+    run_id: str | None = None,
+    base_dir: str | Path = "reports",
+    include_html: bool = True,
+) -> dict[str, Any]:
+    """Persist backtest outputs (summary + trades) to disk.
+
+    Parameters
+    ----------
+    result : Mapping[str, Any]
+        Output from :func:`run_backtest`.
+    run_id : str | None, default None
+        Identifier for directory name. If omitted a UUID4 is generated.
+    base_dir : str | Path, default "reports"
+        Root directory for report runs.
+    include_html : bool, default True
+        Whether to also write an HTML summary file.
+
+    Returns
+    -------
+    dict[str, Any]
+        The JSON summary dictionary enriched with file path references.
+    """
+    rid = run_id or str(uuid.uuid4())
+    run_path = Path(base_dir) / rid
+    run_path.mkdir(parents=True, exist_ok=True)
+
+    html_path = (run_path / "report.html") if include_html else None
+    summary = generate_report(
+        result, html_path=str(html_path) if html_path else None
+    )
+
+    # Build trades/activity frame. Columns: price, position, gross_return,
+    # trading_cost, net_return, turnover.
+    import pandas as pd  # local import to keep module thin when unused
+
+    prices = result.get("prices")
+    positions = result.get("positions")
+    gross = result.get("gross_returns")
+    costs = result.get("trading_cost")
+    net = result.get("returns")
+    turnover = result.get("turnover")
+    if isinstance(prices, pd.Series):
+        trades = pd.DataFrame(
+            {
+                "price": prices,
+                "position": (
+                    positions if isinstance(positions, pd.Series) else None
+                ),
+                "gross_return": (
+                    gross if isinstance(gross, pd.Series) else None
+                ),
+                "trading_cost": (
+                    costs if isinstance(costs, pd.Series) else None
+                ),
+                "net_return": net if isinstance(net, pd.Series) else None,
+                "turnover": (
+                    turnover if isinstance(turnover, pd.Series) else None
+                ),
+            }
+        )
+        trades_path = run_path / "trades.csv"
+        trades.to_csv(trades_path, index=True)
+        summary["trades_path"] = str(trades_path)
+
+    summary_path = run_path / "summary.json"
+    summary["run_id"] = rid
+    summary["summary_path"] = str(summary_path)
+    summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    return summary
+
+
+__all__ = ["generate_report", "write_report"]

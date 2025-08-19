@@ -99,6 +99,9 @@ dependencies = [
     "polars>=0.20.0",
     "pydantic>=2.0.0",
     "tenacity>=8.2.0",
+    # API service layer
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
 ]
 
 [tool.black]

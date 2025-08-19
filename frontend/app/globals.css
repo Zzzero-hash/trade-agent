@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-neutral-950 text-neutral-100 antialiased;
+}
+
+a {
+  @apply text-brand-400 hover:text-brand-300 transition-colors;
+}
+
+.card {
+  @apply bg-neutral-900 border border-neutral-800 rounded-lg p-4 shadow;
+}
