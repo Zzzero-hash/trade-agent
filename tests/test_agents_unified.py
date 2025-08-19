@@ -15,7 +15,7 @@ from typing import Any
 
 import numpy as np
 
-from agents import (  # type: ignore[import-not-found]
+from trade_agent.agents import (  # type: ignore[import-not-found]
     HybridPolicyAgent,  # type: ignore[import-not-found]
     PPOAgent,  # type: ignore[import-not-found]
     SACAgent,  # type: ignore[import-not-found]
@@ -81,14 +81,9 @@ def test_ppo_agent_round_trip() -> None:
     act = agent.predict(obs)
     assert act.shape[0] == env.action_space.shape[0]
     with tempfile.TemporaryDirectory() as d:
-        agent.save(d)
-        # Find checkpoint directory produced by RLlib
-        ckpt_dir = d
-        for root, _dirs, files in os.walk(d):
-            if any(f.startswith("checkpoint") for f in files):
-                ckpt_dir = root
-                break
+        path = os.path.join(d, "ppo_stub.pt")
+        agent.save(path)
         agent2 = PPOAgent(cfg, make_env)
-        agent2.load(ckpt_dir)
+        agent2.load(path)
         act2 = agent2.predict(obs)
         assert act2.shape == act.shape

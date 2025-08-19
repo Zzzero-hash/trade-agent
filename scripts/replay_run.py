@@ -26,17 +26,18 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.sl.models.base import set_all_seeds
-from src.sl.train import train_model_from_config
+from trade_agent.agents.sl.models.base import set_all_seeds
+from trade_agent.agents.sl.train import train_model_from_config
 
 
 class ReplayRunner:
     """Main replay runner that executes the validation pipeline."""
 
-    def __init__(self, seed: int = 42, verbose: bool = True):
+    def __init__(self, seed: int = 42, verbose: bool = True) -> None:
         """
         Initialize the replay runner.
 
@@ -66,8 +67,7 @@ class ReplayRunner:
     def log(self, message: str) -> None:
         """Log a message if verbose mode is enabled."""
         if self.verbose:
-            timestamp = datetime.now().strftime("%H:%M:%S")
-            print(f"[{timestamp}] {message}")
+            datetime.now().strftime("%H:%M:%S")
 
     def compute_hash(self, data: Any) -> str:
         """Compute SHA256 hash of data for validation."""
@@ -77,7 +77,7 @@ class ReplayRunner:
         elif isinstance(data, dict):
             # Convert dict to stable JSON string
             data_str = json.dumps(data, sort_keys=True, default=str)
-        elif isinstance(data, (list, tuple)):
+        elif isinstance(data, list | tuple):
             # Convert to JSON string
             data_str = json.dumps(data, sort_keys=True, default=str)
         else:
@@ -148,9 +148,8 @@ class ReplayRunner:
             if seeds_match:
                 self.log("✓ Seed validation PASSED - reproducible random generation confirmed")
                 return True
-            else:
-                self.log("✗ Seed validation FAILED - non-reproducible random generation")
-                return False
+            self.log("✗ Seed validation FAILED - non-reproducible random generation")
+            return False
 
         except Exception as e:
             self.log(f"✗ Seed validation FAILED with error: {e}")
@@ -299,8 +298,8 @@ class ReplayRunner:
 
         try:
             # Import RL training modules
-            from src.rl.train_ppo import PPOTrainer
-            from src.rl.train_sac import SACTrainer
+            from trade_agent.agents.rl.train_ppo import PPOTrainer
+            from trade_agent.agents.rl.train_sac import SACTrainer
 
             rl_results = {}
 
@@ -361,7 +360,7 @@ class ReplayRunner:
                     "status": "PASS",
                     "training_time_seconds": ppo_time,
                     "final_reward": (
-                        ppo_train_results.get("final_reward", None)
+                        ppo_train_results.get("final_reward")
                     ),
                     "timesteps": ppo_config["training"]["total_timesteps"],
                     "error": None
@@ -453,11 +452,10 @@ class ReplayRunner:
                     "successfully"
                 )
                 return True
-            else:
-                self.log(
-                    "✗ RL training FAILED - no agents trained successfully"
-                )
-                return False
+            self.log(
+                "✗ RL training FAILED - no agents trained successfully"
+            )
+            return False
 
         except Exception as e:
             self.log(f"✗ RL training FAILED with error: {e}")
@@ -514,12 +512,11 @@ class ReplayRunner:
                     "✓ Hash validation PASSED - all outputs are reproducible"
                 )
                 return True
-            else:
-                self.log(
-                    "✗ Hash validation FAILED - some outputs are not "
-                    "reproducible"
-                )
-                return False
+            self.log(
+                "✗ Hash validation FAILED - some outputs are not "
+                "reproducible"
+            )
+            return False
 
         except Exception as e:
             self.log(f"✗ Hash validation FAILED with error: {e}")
@@ -600,20 +597,19 @@ class ReplayRunner:
             if all_passed:
                 self.log(f"✓ Metric validation PASSED - all {len(metric_validations)} metrics within tolerance")
                 return True
-            else:
-                failed_count = sum(1 for v in metric_validations if v["status"] == "FAIL")
-                self.log(f"✗ Metric validation FAILED - {failed_count}/{len(metric_validations)} metrics outside tolerance")
+            failed_count = sum(1 for v in metric_validations if v["status"] == "FAIL")
+            self.log(f"✗ Metric validation FAILED - {failed_count}/{len(metric_validations)} metrics outside tolerance")
 
-                # Log failed validations
-                for validation in metric_validations:
-                    if validation["status"] == "FAIL":
-                        metric = validation["metric_name"]
-                        actual = validation["actual_value"]
-                        expected = validation["expected_value"]
-                        tolerance = validation["tolerance"]
-                        self.log(f"  ✗ {metric}: {actual:.6f} vs expected {expected:.6f} (tolerance: {tolerance*100:.1f}%)")
+            # Log failed validations
+            for validation in metric_validations:
+                if validation["status"] == "FAIL":
+                    metric = validation["metric_name"]
+                    actual = validation["actual_value"]
+                    expected = validation["expected_value"]
+                    tolerance = validation["tolerance"]
+                    self.log(f"  ✗ {metric}: {actual:.6f} vs expected {expected:.6f} (tolerance: {tolerance*100:.1f}%)")
 
-                return False
+            return False
 
         except Exception as e:
             self.log(f"✗ Metric validation FAILED with error: {e}")
@@ -695,23 +691,22 @@ class ReplayRunner:
             if all_passed:
                 self.log(f"✓ Tolerance checks PASSED - all {len(tolerance_checks)} checks within limits")
                 return True
-            else:
-                failed_count = sum(1 for c in tolerance_checks if c["status"] == "FAIL")
-                self.log(f"✗ Tolerance checks FAILED - {failed_count}/{len(tolerance_checks)} checks outside limits")
+            failed_count = sum(1 for c in tolerance_checks if c["status"] == "FAIL")
+            self.log(f"✗ Tolerance checks FAILED - {failed_count}/{len(tolerance_checks)} checks outside limits")
 
-                # Log failed checks
-                for check in tolerance_checks:
-                    if check["status"] == "FAIL":
-                        name = check["check_name"]
-                        actual = check["actual_value"]
-                        if "max_allowed" in check:
-                            limit = check["max_allowed"]
-                            self.log(f"  ✗ {name}: {actual:.2f} exceeds maximum {limit:.2f}")
-                        elif "min_required" in check:
-                            limit = check["min_required"]
-                            self.log(f"  ✗ {name}: {actual} below minimum {limit}")
+            # Log failed checks
+            for check in tolerance_checks:
+                if check["status"] == "FAIL":
+                    name = check["check_name"]
+                    actual = check["actual_value"]
+                    if "max_allowed" in check:
+                        limit = check["max_allowed"]
+                        self.log(f"  ✗ {name}: {actual:.2f} exceeds maximum {limit:.2f}")
+                    elif "min_required" in check:
+                        limit = check["min_required"]
+                        self.log(f"  ✗ {name}: {actual} below minimum {limit}")
 
-                return False
+            return False
 
         except Exception as e:
             self.log(f"✗ Tolerance checks FAILED with error: {e}")
@@ -803,7 +798,7 @@ class ReplayRunner:
         self.log(f"Validation report saved to {output_path}")
 
 
-def main():
+def main() -> None:
     """Main entry point for the replay runner script."""
     parser = argparse.ArgumentParser(description="Replay Run Validation Pipeline")
     parser.add_argument("--seed", type=int, default=42,
@@ -824,12 +819,8 @@ def main():
 
     # Print summary
     status = results["overall_validation"]["status"]
-    success_rate = results["overall_validation"]["success_rate"]
+    results["overall_validation"]["success_rate"]
 
-    print("\nREPLAY VALIDATION SUMMARY:")
-    print(f"Status: {status}")
-    print(f"Success Rate: {success_rate:.1%}")
-    print(f"Report: {args.output}")
 
     # Exit with appropriate code
     sys.exit(0 if status == "PASS" else 1)

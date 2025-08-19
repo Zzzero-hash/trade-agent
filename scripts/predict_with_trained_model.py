@@ -8,13 +8,14 @@ import sys
 import numpy as np
 import pandas as pd
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.sl.models.factory import SLModelFactory
+from trade_agent.agents.sl.models.factory import SLModelFactory
 
 
-def main():
+def main() -> None:
     # Load features data
     df = pd.read_parquet('data/features.parquet')
 
@@ -31,7 +32,6 @@ def main():
 
     model_files = glob.glob(f'models/sl_model_{model_type}_*.pkl')
     if not model_files:
-        print(f"No trained {model_type} model found. Please train a model first.")
         return
 
     # Sort by timestamp to get the latest model
@@ -52,25 +52,18 @@ def main():
     model = SLModelFactory.create_model(model_type, {})
     model = model.load_model(latest_model_path)
 
-    print(f"Loaded {model_type} model from {latest_model_path}")
 
     # Make predictions
-    print("Making predictions...")
     predictions = model.predict(X[:10])  # Predict on first 10 samples
 
-    print(f"Predictions shape: {predictions.shape}")
-    print(f"First 10 predictions: {predictions}")
 
     # Compare with actual values
     actual_values = df['mu_hat'].values[:10]
-    print(f"Actual values: {actual_values}")
 
     # Calculate simple metrics
-    mse = np.mean((predictions - actual_values) ** 2)
-    mae = np.mean(np.abs(predictions - actual_values))
+    np.mean((predictions - actual_values) ** 2)
+    np.mean(np.abs(predictions - actual_values))
 
-    print(f"MSE: {mse:.6f}")
-    print(f"MAE: {mae:.6f}")
 
 
 if __name__ == "__main__":

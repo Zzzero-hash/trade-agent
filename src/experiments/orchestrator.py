@@ -14,6 +14,7 @@ import pandas as pd
 from .config import ExperimentConfig
 from .registry import ExperimentRegistry
 
+
 # Add src to path if not already there
 if os.path.join(os.path.dirname(__file__), '..', '..') not in sys.path:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -26,7 +27,7 @@ from ..sl.models.base import set_all_seeds
 class TrainingOrchestrator:
     """Orchestrates end-to-end training pipeline."""
 
-    def __init__(self, experiment_config: ExperimentConfig):
+    def __init__(self, experiment_config: ExperimentConfig) -> None:
         """
         Initialize training orchestrator.
 
@@ -53,41 +54,34 @@ class TrainingOrchestrator:
         """
         # Register experiment
         self.experiment_id = self.registry.register_experiment(self.config)
-        print(f"Registered experiment: {self.experiment_id}")
 
         try:
             # Load and prepare data
-            print("Loading and preparing data...")
             X, y = self._load_and_prepare_data()
 
             # Run hyperparameter optimization if enabled
             if self.config.optimization_config.enabled:
-                print("Running hyperparameter optimization...")
                 optimization_results = self.run_hyperparameter_optimization(X, y)
                 self.results['optimization'] = optimization_results
             else:
                 optimization_results = {}
 
             # Train models with best hyperparameters
-            print("Training models...")
             training_results = self.train_best_models(X, y, optimization_results)
             self.results['training'] = training_results
 
             # Evaluate ensemble if configured
             if (self.config.ensemble_config and
                     self.config.ensemble_config.enabled):
-                print("Evaluating ensemble...")
                 ensemble_results = self.evaluate_ensemble(X, y, training_results)
                 self.results['ensemble'] = ensemble_results
 
             # Log final results
             self._log_final_results()
 
-            print(f"Pipeline completed successfully for experiment: {self.experiment_id}")
             return self.results
 
-        except Exception as e:
-            print(f"Pipeline failed for experiment {self.experiment_id}: {e}")
+        except Exception:
             raise
 
     def _load_and_prepare_data(self) -> tuple[np.ndarray, np.ndarray]:
@@ -118,7 +112,6 @@ class TrainingOrchestrator:
 
         X = numeric_df.values
 
-        print(f"Loaded data: {X.shape[0]} samples, {X.shape[1]} features")
         return X, y
 
     def run_hyperparameter_optimization(self, X: np.ndarray,
@@ -151,7 +144,6 @@ class TrainingOrchestrator:
         # Optimize each model
         for model_config in self.config.model_configs:
             model_type = model_config.model_type
-            print(f"Optimizing {model_type}...")
 
             try:
                 # Create tuner for this model
@@ -191,10 +183,9 @@ class TrainingOrchestrator:
                     result['best_params']
                 )
 
-                print(f"  Best {model_type} score: {result['best_score']:.4f}")
 
             except Exception as e:
-                warnings.warn(f"Optimization failed for {model_type}: {e}")
+                warnings.warn(f"Optimization failed for {model_type}: {e}", stacklevel=2)
                 optimization_results[model_type] = {
                     'best_params': {},
                     'best_score': 0.0,
@@ -229,7 +220,6 @@ class TrainingOrchestrator:
         # Train each model
         for model_config in self.config.model_configs:
             model_type = model_config.model_type
-            print(f"Training {model_type}...")
 
             try:
                 # Get best parameters from optimization
@@ -263,11 +253,9 @@ class TrainingOrchestrator:
                     final_params
                 )
 
-                print(f"  {model_type} validation score: "
-                     f"{result['metrics'].get('val_score', 'N/A')}")
 
             except Exception as e:
-                warnings.warn(f"Training failed for {model_type}: {e}")
+                warnings.warn(f"Training failed for {model_type}: {e}", stacklevel=2)
                 training_results[model_type] = {
                     'metrics': {'error': str(e)},
                     'model_path': None
@@ -341,10 +329,10 @@ class TrainingOrchestrator:
                     EnhancedTradingEnvironment as TradingEnvironment,
                 )
             else:
-                from src.envs.trading_env import TradingEnvironment
+                from trade_agent.agents.envs.trading_env import TradingEnvironment
             import tempfile
 
-            from src.sl.models.base import set_all_seeds
+            from trade_agent.agents.sl.models.base import set_all_seeds
 
             # Set random seeds for reproducibility
             set_all_seeds(self.config.random_state)
@@ -471,7 +459,7 @@ class TrainingOrchestrator:
             }
 
         except ImportError as e:
-            warnings.warn(f"RL dependencies not available: {e}")
+            warnings.warn(f"RL dependencies not available: {e}", stacklevel=2)
             return {
                 'metrics': {
                     'val_score': 0.0,
@@ -480,7 +468,7 @@ class TrainingOrchestrator:
                 'model_path': None
             }
         except Exception as e:
-            warnings.warn(f"RL training failed: {e}")
+            warnings.warn(f"RL training failed: {e}", stacklevel=2)
             return {
                 'metrics': {
                     'val_score': 0.0,
@@ -545,7 +533,7 @@ class TrainingOrchestrator:
                     pred = model.predict(X)
                     predictions.append(pred)
                 except Exception as e:
-                    warnings.warn(f"Model {model_name} prediction failed: {e}")
+                    warnings.warn(f"Model {model_name} prediction failed: {e}", stacklevel=2)
                     continue
 
             if not predictions:
@@ -594,7 +582,7 @@ class TrainingOrchestrator:
             }
 
         except Exception as e:
-            warnings.warn(f"Ensemble evaluation failed: {e}")
+            warnings.warn(f"Ensemble evaluation failed: {e}", stacklevel=2)
             return {
                 'metrics': {
                     'ensemble_score': 0.0,
@@ -642,7 +630,7 @@ class TrainingOrchestrator:
         sharpe = np.mean(excess_returns) / np.std(excess_returns) * np.sqrt(252)
         return float(sharpe)
 
-    def _log_final_results(self):
+    def _log_final_results(self) -> None:
         """Log final experiment summary."""
         if not self.experiment_id:
             return
@@ -670,9 +658,6 @@ class TrainingOrchestrator:
             summary_metrics
         )
 
-        print(f"Experiment summary logged. Best model: "
-             f"{summary_metrics['best_model']} "
-             f"(score: {summary_metrics['best_score']:.4f})")
 
     def get_experiment_summary(self) -> dict[str, Any]:
         """Get comprehensive experiment summary."""

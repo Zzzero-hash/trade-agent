@@ -13,11 +13,14 @@ import numpy as np
 import pandas as pd
 from stable_baselines3 import SAC
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.envs.trading_env import TradingEnvironment  # noqa: E402
-from src.sl.models.base import set_all_seeds  # noqa: E402
+import contextlib
+
+from trade_agent.agents.envs.trading_env import TradingEnvironment  # noqa: E402
+from trade_agent.agents.sl.models.base import set_all_seeds  # noqa: E402
 
 
 def load_sac_model(model_path: str) -> SAC:
@@ -30,10 +33,7 @@ def load_sac_model(model_path: str) -> SAC:
     Returns:
         Loaded SAC model
     """
-    print(f"Loading SAC model from {model_path}...")
-    model = SAC.load(model_path)
-    print("Model loaded successfully!")
-    return model
+    return SAC.load(model_path)
 
 
 def create_validation_environment(
@@ -70,7 +70,7 @@ def create_validation_environment(
     val_data.to_parquet(val_file)
 
     # Create validation environment with fixed seed
-    eval_env = TradingEnvironment(
+    return TradingEnvironment(
         data_file=val_file,
         initial_capital=initial_capital,
         transaction_cost=transaction_cost,
@@ -79,7 +79,6 @@ def create_validation_environment(
         window_size=window_size
     )
 
-    return eval_env
 
 
 def evaluate_deterministic_policy(
@@ -98,15 +97,12 @@ def evaluate_deterministic_policy(
     Returns:
         Dictionary with evaluation metrics
     """
-    print(f"Starting evaluation with deterministic policy for {n_episodes} " +
-          "episode(s)...")
 
     episode_returns = []
     episode_rewards = []
     episode_entropies = []
 
-    for episode in range(n_episodes):
-        print(f"Running episode {episode + 1}/{n_episodes}...")
+    for _episode in range(n_episodes):
 
         # Reset environment
         obs, _ = env.reset()
@@ -162,14 +158,10 @@ def evaluate_deterministic_policy(
         if entropies:
             episode_entropies.append(np.mean(entropies))
 
-        print(f"  Episode {episode + 1}: Reward = {total_reward:.4f}, " +
-              f"Return = ${episode_return:.2f}, Steps = {step_count}")
 
     # Clean up temporary file
-    try:
+    with contextlib.suppress(FileNotFoundError):
         os.remove("data/val_temp.parquet")
-    except FileNotFoundError:
-        pass
 
     # Calculate metrics
     mean_reward = np.mean(episode_rewards)
@@ -195,7 +187,7 @@ def evaluate_deterministic_policy(
 
 
 def save_metrics(metrics: dict[str, Any],
-                output_file: str = "reports/sac_evaluation_metrics.json"):
+                output_file: str = "reports/sac_evaluation_metrics.json") -> None:
     """
     Save evaluation metrics to a JSON file.
 
@@ -208,7 +200,7 @@ def save_metrics(metrics: dict[str, Any],
     for key, value in metrics.items():
         if isinstance(value, np.ndarray):
             serializable_metrics[key] = value.tolist()
-        elif isinstance(value, (np.integer, np.floating)):
+        elif isinstance(value, np.integer | np.floating):
             serializable_metrics[key] = value.item()
         else:
             serializable_metrics[key] = value
@@ -218,13 +210,10 @@ def save_metrics(metrics: dict[str, Any],
     with open(output_file, 'w') as f:
         json.dump(serializable_metrics, f, indent=2)
 
-    print(f"Metrics saved to {output_file}")
 
 
-def main():
+def main() -> int:
     """Main evaluation function."""
-    print("SAC Agent Evaluation Script")
-    print("=" * 50)
 
     # Set seeds for reproducibility
     seed = 42
@@ -236,7 +225,6 @@ def main():
         with open(config_path) as f:
             config = json.load(f)
     except FileNotFoundError:
-        print(f"Configuration file {config_path} not found, using defaults.")
         config = {}
 
     # Extract configuration parameters
@@ -252,23 +240,19 @@ def main():
     ]
 
     model = None
-    loaded_model_path = None
 
     # Try to load model
     for model_path in model_paths:
         if os.path.exists(model_path):
             try:
                 model = load_sac_model(model_path)
-                loaded_model_path = model_path
                 break
-            except Exception as e:
-                print(f"Failed to load model from {model_path}: {e}")
+            except Exception:
+                pass
 
     if model is None:
-        print("No trained SAC model found. Please train a model first.")
         return 1
 
-    print(f"Using model from: {loaded_model_path}")
 
     # Create validation environment
     eval_env = create_validation_environment(
@@ -280,8 +264,6 @@ def main():
         seed=seed
     )
 
-    print("Validation environment created with " +
-          f"{len(eval_env.prices)} samples")
 
     # Evaluate deterministic policy
     metrics = evaluate_deterministic_policy(
@@ -291,23 +273,14 @@ def main():
     )
 
     # Print results
-    print("\n" + "=" * 50)
-    print("EVALUATION RESULTS")
-    print("=" * 50)
-    print(f"Mean Reward: {metrics['mean_reward']:.6f}")
-    print(f"Mean Return: ${metrics['mean_return']:.2f}")
-    print(f"Return Standard Deviation: ${metrics['std_return']:.2f}")
 
     if 'mean_entropy' in metrics:
-        print(f"Mean Policy Entropy: {metrics['mean_entropy']:.6f}")
-        print(f"Entropy Standard Deviation: {metrics['std_entropy']:.6f}")
+        pass
 
-    print(f"Number of Episodes: {metrics['n_episodes']}")
 
     # Save metrics
     save_metrics(metrics, "reports/sac_evaluation_metrics.json")
 
-    print("\nEvaluation completed successfully!")
     return 0
 
 

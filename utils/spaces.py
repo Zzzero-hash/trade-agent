@@ -1,7 +1,8 @@
 from collections.abc import Iterable
 
-import gym
+import gymnasium as gym
 import numpy as np
+from numpy.typing import NDArray
 
 
 def build_observation_space(feature_dim: int) -> gym.spaces.Box:
@@ -35,7 +36,7 @@ def build_action_space(action_dim: int) -> gym.spaces.Box:
     return gym.spaces.Box(low=low, high=high, dtype=np.float32)
 
 
-def features_to_observation(features: Iterable[float]) -> np.ndarray:
+def features_to_observation(features: Iterable[float]) -> NDArray[np.float32]:
     """Convert iterable of numeric features to float32 numpy array.
 
     This helper underpins a simple, consistent transformation pipeline for

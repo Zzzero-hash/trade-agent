@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 # Import the data loader
-from src.data.loaders import load_ohlcv_data
+from trade_agent.data.loaders import load_ohlcv_data
 
 
 def compute_log_returns(df: pd.DataFrame) -> pd.Series:
@@ -29,7 +29,7 @@ def compute_log_returns(df: pd.DataFrame) -> pd.Series:
 
 
 def compute_rolling_stats(df: pd.DataFrame,
-                         windows: list[int] = [20, 60]) -> pd.DataFrame:
+                         windows: list[int] = None) -> pd.DataFrame:
     """
     Compute rolling mean and volatility for specified windows.
 
@@ -40,6 +40,8 @@ def compute_rolling_stats(df: pd.DataFrame,
     Returns:
         pd.DataFrame: DataFrame with rolling mean and volatility features
     """
+    if windows is None:
+        windows = [20, 60]
     features = pd.DataFrame(index=df.index)
 
     log_returns = compute_log_returns(df)
@@ -82,9 +84,8 @@ def compute_atr(df: pd.DataFrame, window: int = 14) -> pd.Series:
     }).max(axis=1)
 
     # ATR is the rolling mean of True Range, shifted to prevent data leakage
-    atr = tr.rolling(window=window).mean().shift(1)
+    return tr.rolling(window=window).mean().shift(1)
 
-    return atr
 
 
 def compute_rsi(df: pd.DataFrame, window: int = 14) -> pd.Series:
@@ -111,9 +112,8 @@ def compute_rsi(df: pd.DataFrame, window: int = 14) -> pd.Series:
 
     # Calculate RS and RSI
     rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
+    return 100 - (100 / (1 + rs))
 
-    return rsi
 
 
 def compute_z_scores(df: pd.DataFrame, window: int = 20) -> pd.DataFrame:
@@ -154,8 +154,7 @@ def compute_realized_volatility(df: pd.DataFrame, window: int = 20) -> pd.Series
         pd.Series: Realized volatility values
     """
     log_returns = compute_log_returns(df)
-    realized_vol = log_returns.rolling(window=window).std().shift(1)
-    return realized_vol
+    return log_returns.rolling(window=window).std().shift(1)
 
 
 def compute_calendar_flags(df: pd.DataFrame) -> pd.DataFrame:
@@ -271,12 +270,11 @@ def build_features(df: pd.DataFrame, horizon: int = 5) -> pd.DataFrame:
     features = pd.concat([features, targets], axis=1)
 
     # Remove rows with NaN values (due to rolling windows and shifts)
-    features = features.dropna()
-
-    return features
+    return features.dropna()
 
 
-def main():
+
+def main() -> None:
     """Main function for command-line interface."""
     parser = argparse.ArgumentParser(
         description="Feature Engineering for Financial Time-Series Data"
@@ -309,18 +307,14 @@ def main():
             # For parquet files, load directly with pandas
             df = pd.read_parquet(args.input_file)
 
-        print(f"Successfully loaded {len(df)} rows of data from {args.input_file}")
 
         # Build features
         features_df = build_features(df, args.horizon)
-        print(f"Generated {len(features_df)} rows with {len(features_df.columns)} features")
 
         # Save features
         features_df.to_parquet(args.out)
-        print(f"Features saved to {args.out}")
 
-    except Exception as e:
-        print(f"Error: {e}")
+    except Exception:
         sys.exit(1)
 
 

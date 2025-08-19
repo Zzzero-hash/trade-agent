@@ -9,46 +9,75 @@ import numpy as np
 import pandas as pd
 import pytest
 
+
 # Import from src modules
 try:
-    from src.sl.evaluate import SLEvaluationMetrics, SLEvaluationPipeline
-    from src.sl.models.base import PyTorchSLModel, SLBaseModel, set_all_seeds
-    from src.sl.models.deep_learning import CNNLSTMModel, MLPModel, TransformerModel
-    from src.sl.models.ensemble import EnsembleModel, StackingModel
-    from src.sl.models.factory import SLModelFactory
-    from src.sl.models.traditional import GARCHModel, LinearModel, RidgeModel
-    from src.sl.models.tree_based import LightGBMModel, RandomForestModel, XGBoostModel
-    from src.sl.predict import SLPredictionPipeline
-    from src.sl.train import SLTrainingPipeline, TemporalCV
+    from trade_agent.agents.sl.evaluate import SLEvaluationMetrics, SLEvaluationPipeline
+    from trade_agent.agents.sl.models.base import (
+        PyTorchSLModel,
+        SLBaseModel,
+        set_all_seeds,
+    )
+    from trade_agent.agents.sl.models.deep_learning import (
+        CNNLSTMModel,
+        MLPModel,
+        TransformerModel,
+    )
+    from trade_agent.agents.sl.models.ensemble import EnsembleModel, StackingModel
+    from trade_agent.agents.sl.models.factory import SLModelFactory
+    from trade_agent.agents.sl.models.traditional import (
+        GARCHModel,
+        LinearModel,
+        RidgeModel,
+    )
+    from trade_agent.agents.sl.models.tree_based import (
+        LightGBMModel,
+        RandomForestModel,
+        XGBoostModel,
+    )
+    from trade_agent.agents.sl.predict import SLPredictionPipeline
+    from trade_agent.agents.sl.train import SLTrainingPipeline, TemporalCV
 except ImportError:
     # Fallback for development environment
     import sys
     sys.path.append('src')
-    from sl.evaluate import SLEvaluationMetrics, SLEvaluationPipeline
-    from sl.models.base import SLBaseModel, set_all_seeds
-    from sl.models.deep_learning import CNNLSTMModel, MLPModel, TransformerModel
-    from sl.models.ensemble import EnsembleModel, StackingModel
-    from sl.models.factory import SLModelFactory
-    from sl.models.traditional import GARCHModel, LinearModel, RidgeModel
-    from sl.models.tree_based import LightGBMModel, RandomForestModel, XGBoostModel
-    from sl.predict import SLPredictionPipeline
-    from sl.train import SLTrainingPipeline, TemporalCV
+    from trade_agent.agents.sl.evaluate import SLEvaluationMetrics, SLEvaluationPipeline
+    from trade_agent.agents.sl.models.base import SLBaseModel, set_all_seeds
+    from trade_agent.agents.sl.models.deep_learning import (
+        CNNLSTMModel,
+        MLPModel,
+        TransformerModel,
+    )
+    from trade_agent.agents.sl.models.ensemble import EnsembleModel, StackingModel
+    from trade_agent.agents.sl.models.factory import SLModelFactory
+    from trade_agent.agents.sl.models.traditional import (
+        GARCHModel,
+        LinearModel,
+        RidgeModel,
+    )
+    from trade_agent.agents.sl.models.tree_based import (
+        LightGBMModel,
+        RandomForestModel,
+        XGBoostModel,
+    )
+    from trade_agent.agents.sl.predict import SLPredictionPipeline
+    from trade_agent.agents.sl.train import SLTrainingPipeline, TemporalCV
 
 
 class TestBaseModels(unittest.TestCase):
     """Test base model classes."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.config = {'random_state': 42}
         set_all_seeds(42)
 
-    def test_sl_base_model_abstract(self):
+    def test_sl_base_model_abstract(self) -> None:
         """Test that SLBaseModel is abstract and cannot be instantiated."""
         with self.assertRaises(TypeError):
             SLBaseModel(self.config)
 
-    def test_set_all_seeds(self):
+    def test_set_all_seeds(self) -> None:
         """Test that set_all_seeds works correctly."""
         set_all_seeds(42)
         a = np.random.rand(1)
@@ -60,7 +89,7 @@ class TestBaseModels(unittest.TestCase):
 class TestTraditionalModels(unittest.TestCase):
     """Test traditional models."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.config = {'random_state': 42}
         set_all_seeds(42)
@@ -70,7 +99,7 @@ class TestTraditionalModels(unittest.TestCase):
         self.X = np.random.randn(100, 5)
         self.y = np.random.randn(100)
 
-    def test_ridge_model(self):
+    def test_ridge_model(self) -> None:
         """Test Ridge model."""
         model = RidgeModel(self.config)
         model.fit(self.X, self.y)
@@ -79,7 +108,7 @@ class TestTraditionalModels(unittest.TestCase):
         self.assertEqual(predictions.shape, (100,))
         self.assertTrue(model.is_fitted)
 
-    def test_linear_model(self):
+    def test_linear_model(self) -> None:
         """Test Linear model."""
         model = LinearModel(self.config)
         model.fit(self.X, self.y)
@@ -88,7 +117,7 @@ class TestTraditionalModels(unittest.TestCase):
         self.assertEqual(predictions.shape, (100,))
         self.assertTrue(model.is_fitted)
 
-    def test_garch_model(self):
+    def test_garch_model(self) -> None:
         """Test GARCH model."""
         model = GARCHModel(self.config)
         model.fit(self.X[:, 0], self.y)  # Use first column as returns
@@ -97,7 +126,7 @@ class TestTraditionalModels(unittest.TestCase):
         self.assertEqual(predictions.shape, (100,))
         self.assertTrue(model.is_fitted)
 
-    def test_model_save_load(self):
+    def test_model_save_load(self) -> None:
         """Test model save and load functionality."""
         model = RidgeModel(self.config)
         model.fit(self.X, self.y)
@@ -122,7 +151,7 @@ class TestTraditionalModels(unittest.TestCase):
 class TestTreeBasedModels(unittest.TestCase):
     """Test tree-based models."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.config = {'random_state': 42, 'n_estimators': 10}
         set_all_seeds(42)
@@ -132,7 +161,7 @@ class TestTreeBasedModels(unittest.TestCase):
         self.X = np.random.randn(100, 5)
         self.y = np.random.randn(100)
 
-    def test_xgboost_model(self):
+    def test_xgboost_model(self) -> None:
         """Test XGBoost model."""
         try:
             model = XGBoostModel(self.config)
@@ -144,7 +173,7 @@ class TestTreeBasedModels(unittest.TestCase):
         except ImportError:
             self.skipTest("XGBoost not available")
 
-    def test_lightgbm_model(self):
+    def test_lightgbm_model(self) -> None:
         """Test LightGBM model."""
         try:
             model = LightGBMModel(self.config)
@@ -156,7 +185,7 @@ class TestTreeBasedModels(unittest.TestCase):
         except ImportError:
             self.skipTest("LightGBM not available")
 
-    def test_random_forest_model(self):
+    def test_random_forest_model(self) -> None:
         """Test Random Forest model."""
         try:
             model = RandomForestModel(self.config)
@@ -172,7 +201,7 @@ class TestTreeBasedModels(unittest.TestCase):
 class TestDeepLearningModels(unittest.TestCase):
     """Test deep learning models."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.config = {
             'random_state': 42,
@@ -189,7 +218,7 @@ class TestDeepLearningModels(unittest.TestCase):
         self.X = np.random.randn(100, 5)
         self.y = np.random.randn(100)
 
-    def test_cnn_lstm_model(self):
+    def test_cnn_lstm_model(self) -> None:
         """Test CNN-LSTM model."""
         model = CNNLSTMModel(self.config)
         model.fit(self.X, self.y)
@@ -198,7 +227,7 @@ class TestDeepLearningModels(unittest.TestCase):
         self.assertEqual(predictions.shape, (91,))  # 100 - 10 + 1
         self.assertTrue(model.is_fitted)
 
-    def test_transformer_model(self):
+    def test_transformer_model(self) -> None:
         """Test Transformer model."""
         model = TransformerModel(self.config)
         model.fit(self.X, self.y)
@@ -207,7 +236,7 @@ class TestDeepLearningModels(unittest.TestCase):
         self.assertEqual(predictions.shape, (91,))  # 100 - 10 + 1
         self.assertTrue(model.is_fitted)
 
-    def test_mlp_model(self):
+    def test_mlp_model(self) -> None:
         """Test MLP model."""
         model = MLPModel(self.config)
         model.fit(self.X, self.y)
@@ -220,7 +249,7 @@ class TestDeepLearningModels(unittest.TestCase):
 class TestEnsembleModels(unittest.TestCase):
     """Test ensemble models."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.config = {'random_state': 42}
         set_all_seeds(42)
@@ -230,7 +259,7 @@ class TestEnsembleModels(unittest.TestCase):
         self.X = np.random.randn(100, 5)
         self.y = np.random.randn(100)
 
-    def test_ensemble_model(self):
+    def test_ensemble_model(self) -> None:
         """Test Ensemble model."""
         model = EnsembleModel(self.config)
 
@@ -250,7 +279,7 @@ class TestEnsembleModels(unittest.TestCase):
         self.assertEqual(predictions.shape, (100,))
         self.assertTrue(model.is_fitted)
 
-    def test_stacking_model(self):
+    def test_stacking_model(self) -> None:
         """Test Stacking model."""
         model = StackingModel(self.config)
 
@@ -274,11 +303,11 @@ class TestEnsembleModels(unittest.TestCase):
 class TestModelFactory(unittest.TestCase):
     """Test model factory."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.config = {'random_state': 42}
 
-    def test_create_model(self):
+    def test_create_model(self) -> None:
         """Test creating models with factory."""
         model_types = ['ridge', 'linear', 'garch', 'mlp']
 
@@ -286,17 +315,17 @@ class TestModelFactory(unittest.TestCase):
             try:
                 model = SLModelFactory.create_model(model_type, self.config)
                 self.assertIsInstance(model, SLBaseModel)
-            except Exception as e:
-                print(f"Skipping {model_type} due to: {e}")
+            except Exception:
+                pass
 
-    def test_get_available_models(self):
+    def test_get_available_models(self) -> None:
         """Test getting available models."""
         available_models = SLModelFactory.get_available_models()
         self.assertIsInstance(available_models, list)
         self.assertIn('ridge', available_models)
         self.assertIn('mlp', available_models)
 
-    def test_is_model_available(self):
+    def test_is_model_available(self) -> None:
         """Test checking if model is available."""
         self.assertTrue(SLModelFactory.is_model_available('ridge'))
         self.assertFalse(SLModelFactory.is_model_available('nonexistent_model'))
@@ -305,7 +334,7 @@ class TestModelFactory(unittest.TestCase):
 class TestTrainingPipeline(unittest.TestCase):
     """Test training pipeline."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.config = {
             'model_type': 'ridge',
@@ -321,7 +350,7 @@ class TestTrainingPipeline(unittest.TestCase):
         self.X = np.random.randn(100, 5)
         self.y = np.random.randn(100)
 
-    def test_temporal_cv(self):
+    def test_temporal_cv(self) -> None:
         """Test temporal cross-validation."""
         cv = TemporalCV(n_splits=3, gap=0)
         splits = list(cv.split(self.X, self.y))
@@ -331,7 +360,7 @@ class TestTrainingPipeline(unittest.TestCase):
             self.assertLess(np.max(train_idx), np.min(val_idx))  # Temporal order
 
     @pytest.mark.slow
-    def test_training_pipeline(self):
+    def test_training_pipeline(self) -> None:
         """Test training pipeline."""
         pipeline = SLTrainingPipeline(self.config)
         results = pipeline.train(self.X, self.y)
@@ -344,7 +373,7 @@ class TestTrainingPipeline(unittest.TestCase):
 class TestEvaluationPipeline(unittest.TestCase):
     """Test evaluation pipeline."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.config = {'compute_financial_metrics': True}
 
@@ -353,7 +382,7 @@ class TestEvaluationPipeline(unittest.TestCase):
         self.y_true = np.random.randn(100)
         self.y_pred = np.random.randn(100)
 
-    def test_regression_metrics(self):
+    def test_regression_metrics(self) -> None:
         """Test regression metrics."""
         metrics = SLEvaluationMetrics.regression_metrics(self.y_true, self.y_pred)
 
@@ -363,7 +392,7 @@ class TestEvaluationPipeline(unittest.TestCase):
         self.assertIn('mae', metrics)
         self.assertIn('r2', metrics)
 
-    def test_financial_metrics(self):
+    def test_financial_metrics(self) -> None:
         """Test financial metrics."""
         metrics = SLEvaluationMetrics.financial_metrics(self.y_true, self.y_pred)
 
@@ -372,7 +401,7 @@ class TestEvaluationPipeline(unittest.TestCase):
         self.assertIn('sharpe_ratio', metrics)
         self.assertIn('information_coefficient', metrics)
 
-    def test_evaluation_pipeline(self):
+    def test_evaluation_pipeline(self) -> None:
         """Test evaluation pipeline."""
         pipeline = SLEvaluationPipeline(self.config)
         results = pipeline.evaluate(self.y_true, self.y_pred)
@@ -385,7 +414,7 @@ class TestEvaluationPipeline(unittest.TestCase):
 class TestPredictionPipeline(unittest.TestCase):
     """Test prediction pipeline."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test fixtures."""
         self.config = {'random_state': 42}
 
@@ -398,7 +427,7 @@ class TestPredictionPipeline(unittest.TestCase):
         self.model = RidgeModel({'random_state': 42, 'alpha': 1.0})
         self.model.fit(self.X, self.y)
 
-    def test_batch_predict(self):
+    def test_batch_predict(self) -> None:
         """Test batch prediction."""
         pipeline = SLPredictionPipeline(self.config)
         pipeline.model = self.model
@@ -407,7 +436,7 @@ class TestPredictionPipeline(unittest.TestCase):
 
         self.assertEqual(predictions.shape, (100,))
 
-    def test_predict_with_pandas(self):
+    def test_predict_with_pandas(self) -> None:
         """Test prediction with pandas DataFrame."""
         pipeline = SLPredictionPipeline(self.config)
         pipeline.model = self.model

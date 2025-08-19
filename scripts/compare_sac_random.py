@@ -12,11 +12,14 @@ import numpy as np
 import pandas as pd
 from stable_baselines3 import SAC
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.envs.trading_env import TradingEnvironment  # noqa: E402
-from src.sl.models.base import set_all_seeds  # noqa: E402
+import contextlib
+
+from trade_agent.agents.envs.trading_env import TradingEnvironment  # noqa: E402
+from trade_agent.agents.sl.models.base import set_all_seeds  # noqa: E402
 
 
 def load_sac_model(model_path: str) -> SAC:
@@ -29,10 +32,7 @@ def load_sac_model(model_path: str) -> SAC:
     Returns:
         Loaded SAC model
     """
-    print(f"Loading SAC model from {model_path}...")
-    model = SAC.load(model_path)
-    print("Model loaded successfully!")
-    return model
+    return SAC.load(model_path)
 
 
 def create_validation_environment(
@@ -69,7 +69,7 @@ def create_validation_environment(
     val_data.to_parquet(val_file)
 
     # Create validation environment with fixed seed
-    eval_env = TradingEnvironment(
+    return TradingEnvironment(
         data_file=val_file,
         initial_capital=initial_capital,
         transaction_cost=transaction_cost,
@@ -78,7 +78,6 @@ def create_validation_environment(
         window_size=window_size
     )
 
-    return eval_env
 
 
 def evaluate_deterministic_policy(
@@ -97,14 +96,11 @@ def evaluate_deterministic_policy(
     Returns:
         Dictionary with evaluation metrics
     """
-    print("Starting evaluation with deterministic policy for " +
-          f"{n_episodes} episode(s)...")
 
     episode_returns = []
     episode_rewards = []
 
-    for episode in range(n_episodes):
-        print(f"Running episode {episode + 1}/{n_episodes}...")
+    for _episode in range(n_episodes):
 
         # Reset environment
         obs, _ = env.reset()
@@ -131,21 +127,17 @@ def evaluate_deterministic_policy(
         episode_rewards.append(total_reward)
         episode_returns.append(episode_return)
 
-        print(f"  Episode {episode + 1}: Reward = {total_reward:.4f}, " +
-              f"Return = ${episode_return:.2f}, Steps = {step_count}")
 
     # Clean up temporary file
-    try:
+    with contextlib.suppress(FileNotFoundError):
         os.remove("data/val_temp.parquet")
-    except FileNotFoundError:
-        pass
 
     # Calculate metrics
     mean_reward = np.mean(episode_rewards)
     mean_return = np.mean(episode_returns)
     std_return = np.std(episode_returns)
 
-    metrics = {
+    return {
         'mean_reward': mean_reward,
         'mean_return': mean_return,
         'std_return': std_return,
@@ -154,7 +146,6 @@ def evaluate_deterministic_policy(
         'n_episodes': n_episodes
     }
 
-    return metrics
 
 
 def evaluate_random_policy(
@@ -171,14 +162,11 @@ def evaluate_random_policy(
     Returns:
         Dictionary with evaluation metrics
     """
-    print("Starting evaluation with random policy for " +
-          f"{n_episodes} episode(s)...")
 
     episode_returns = []
     episode_rewards = []
 
-    for episode in range(n_episodes):
-        print(f"Running episode {episode + 1}/{n_episodes}...")
+    for _episode in range(n_episodes):
 
         # Reset environment
         obs, _ = env.reset()
@@ -205,15 +193,13 @@ def evaluate_random_policy(
         episode_rewards.append(total_reward)
         episode_returns.append(episode_return)
 
-        print(f"  Episode {episode + 1}: Reward = {total_reward:.4f}, " +
-              f"Return = ${episode_return:.2f}, Steps = {step_count}")
 
     # Calculate metrics
     mean_reward = np.mean(episode_rewards)
     mean_return = np.mean(episode_returns)
     std_return = np.std(episode_returns)
 
-    metrics = {
+    return {
         'mean_reward': mean_reward,
         'mean_return': mean_return,
         'std_return': std_return,
@@ -222,13 +208,10 @@ def evaluate_random_policy(
         'n_episodes': n_episodes
     }
 
-    return metrics
 
 
-def main():
+def main() -> int:
     """Main comparison function."""
-    print("SAC vs Random Policy Comparison")
-    print("=" * 50)
 
     # Set seeds for reproducibility
     seed = 42
@@ -240,7 +223,6 @@ def main():
         with open(config_path) as f:
             config = json.load(f)
     except FileNotFoundError:
-        print(f"Configuration file {config_path} not found, using defaults.")
         config = {}
 
     # Extract configuration parameters
@@ -256,23 +238,19 @@ def main():
     ]
 
     model = None
-    loaded_model_path = None
 
     # Try to load model
     for model_path in model_paths:
         if os.path.exists(model_path):
             try:
                 model = load_sac_model(model_path)
-                loaded_model_path = model_path
                 break
-            except Exception as e:
-                print(f"Failed to load model from {model_path}: {e}")
+            except Exception:
+                pass
 
     if model is None:
-        print("No trained SAC model found. Please train a model first.")
         return 1
 
-    print(f"Using model from: {loaded_model_path}")
 
     # Create validation environment
     eval_env = create_validation_environment(
@@ -284,8 +262,6 @@ def main():
         seed=seed
     )
 
-    print("Validation environment created with " +
-          f"{len(eval_env.prices)} samples")
 
     # Evaluate SAC deterministic policy
     sac_metrics = evaluate_deterministic_policy(
@@ -311,34 +287,20 @@ def main():
     )
 
     # Print comparison results
-    print("\n" + "=" * 50)
-    print("COMPARISON RESULTS")
-    print("=" * 50)
-    print("SAC Agent (Deterministic Policy):")
-    print(f"  Mean Reward: {sac_metrics['mean_reward']:.6f}")
-    print(f"  Mean Return: ${sac_metrics['mean_return']:.2f}")
-    print(f"  Return Standard Deviation: ${sac_metrics['std_return']:.2f}")
 
-    print("\nRandom Policy:")
-    print(f"  Mean Reward: {random_metrics['mean_reward']:.6f}")
-    print(f"  Mean Return: ${random_metrics['mean_return']:.2f}")
-    print(f"  Return Standard Deviation: ${random_metrics['std_return']:.2f}")
 
     # Calculate improvement
-    reward_improvement = (sac_metrics['mean_reward'] -
+    (sac_metrics['mean_reward'] -
                          random_metrics['mean_reward'])
     return_improvement = (sac_metrics['mean_return'] -
                          random_metrics['mean_return'])
 
-    print("\nImprovement (SAC - Random):")
-    print(f"  Reward: {reward_improvement:.6f}")
-    print(f"  Return: ${return_improvement:.2f}")
 
     # Check if SAC is better than random
     if return_improvement > 0:
-        print("\n✓ SAC agent outperforms random policy!")
+        pass
     else:
-        print("\n✗ SAC agent does not outperform random policy!")
+        pass
 
     return 0
 

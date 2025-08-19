@@ -30,9 +30,9 @@ testing; it should be replaced by real model inference when available.
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
+
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -55,7 +55,7 @@ class DataTradingBridge:
     all feature columns (except identifier columns like ``symbol`` / ``date``).
     """
 
-    def __init__(self, cache_dir: str = "data/bridge_cache"):
+    def __init__(self, cache_dir: str = "data/bridge_cache") -> None:
         """
         Initialize the bridge.
 
@@ -68,7 +68,7 @@ class DataTradingBridge:
     def convert_pipeline_output_to_trading_format(
         self,
         pipeline_data_path: str,
-        output_path: Optional[str] = None,
+        output_path: str | None = None,
         add_mock_predictions: bool = True,
         window_size: int = 30,
     ) -> str:
@@ -84,12 +84,9 @@ class DataTradingBridge:
         Returns:
             Path to converted data file
         """
-        print(f"Converting pipeline output: {pipeline_data_path}")
 
         # Load pipeline data
         df = pd.read_parquet(pipeline_data_path)
-        print(f"Loaded data shape: {df.shape}")
-        print(f"Columns: {list(df.columns)}")
 
         # Add basic features
         df_enhanced = self._add_basic_features(df)
@@ -128,11 +125,8 @@ class DataTradingBridge:
             import json
             with open(meta_path, 'w') as f:
                 json.dump(meta, f, indent=2)
-        except Exception as e:
-            print(f"Warning: failed to write metadata: {e}")
-        print(f"Converted data saved to: {output_path}")
-        print(f"Final shape: {df_enhanced.shape}")
-        print(f"Final columns: {list(df_enhanced.columns)}")
+        except Exception:
+            pass
 
         return str(output_path)
 
@@ -246,15 +240,14 @@ class DataTradingBridge:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
         # Fill any remaining NaN from conversion
-        df = df.fillna(0.0)
+        return df.fillna(0.0)
 
-        return df
 
 
 class WorkflowBridge:
     """Orchestrate pipeline → features → trading format conversion."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize workflow bridge."""
         self.data_bridge = DataTradingBridge()
 
@@ -280,9 +273,6 @@ class WorkflowBridge:
         if symbols is None:
             symbols = ['AAPL']
 
-        print("=== Running Data-to-Trading Pipeline ===")
-        print(f"Symbols: {symbols}")
-        print(f"Date range: {start_date} to {end_date}")
 
         # Import data pipeline components lazily
         from data import (
@@ -300,7 +290,6 @@ class WorkflowBridge:
         results: dict[str, str] = {}
 
         for symbol in symbols:
-            print(f"\nProcessing {symbol}...")
 
             # 1. Run data pipeline for this symbol
             data_source = create_data_source_config(
@@ -337,9 +326,6 @@ class WorkflowBridge:
             processed_path = symbol_results.get('processed_path')
 
             if processed_path and Path(processed_path).exists():
-                print(
-                    f"✓ Data pipeline completed for {symbol}: {processed_path}"
-                )
 
                 # 2. Convert to trading format
                 trading_format_path = (
@@ -353,25 +339,19 @@ class WorkflowBridge:
                 )
 
                 results[symbol] = trading_format_path
-                print(
-                    f"✓ Trading format ready for {symbol}: "
-                    f"{trading_format_path}"
-                )
             else:
-                print(f"✗ Failed to process {symbol}")
+                pass
 
         return results
 
 
 def test_bridge_functionality():
     """Ad-hoc test for bridge functionality with pipeline (dev utility)."""
-    print("=== Testing Data-Trading Bridge ===")
 
     # Find existing pipeline output
     pipeline_files = list(Path("data/pipelines").rglob("*processed*.parquet"))
 
     if not pipeline_files:
-        print("No existing pipeline output found. Running workflow bridge...")
 
         # Run workflow bridge to create data
         workflow = WorkflowBridge()
@@ -382,30 +362,26 @@ def test_bridge_functionality():
         )
 
         if results:
-            trading_file = list(results.values())[0]
-            print(f"Created trading format file: {trading_file}")
-            return trading_file
+            return list(results.values())[0]
     else:
         # Use existing pipeline output
         pipeline_file = pipeline_files[0]
-        print(f"Using existing pipeline output: {pipeline_file}")
 
         # Convert to trading format
         bridge = DataTradingBridge()
-        trading_file = bridge.convert_pipeline_output_to_trading_format(
+        return bridge.convert_pipeline_output_to_trading_format(
             str(pipeline_file)
         )
-        return trading_file
+    return None
 
 
-def test_trading_environment_integration(trading_data_path: str):
+def test_trading_environment_integration(trading_data_path: str) -> bool | None:
     """Ad-hoc smoke test for environment integration."""
-    print("\n=== Testing Trading Environment Integration ===")
 
     try:
         # Import trading environment
         sys.path.insert(0, 'src')
-        from envs.trading_env import TradingEnvironment
+        from trade_agent.agents.envs.trading_env import TradingEnvironment
 
         # Create environment with converted data
         env = TradingEnvironment(
@@ -415,22 +391,17 @@ def test_trading_environment_integration(trading_data_path: str):
             window_size=30
         )
 
-        print("✓ TradingEnvironment created successfully with bridge data")
 
         # Test environment functionality
         obs, info = env.reset()
-        print(f"✓ Environment reset - observation shape: {obs.shape}")
 
         # Test step
         action = env.action_space.sample()
         obs, reward, terminated, truncated, info = env.step(action)
-        print(f"✓ Environment step - reward: {reward:.4f}")
 
-        print("🎉 Bridge integration successful!")
         return True
 
-    except Exception as e:
-        print(f"✗ Integration failed: {e}")
+    except Exception:
         import traceback
         traceback.print_exc()
         return False
@@ -445,9 +416,8 @@ if __name__ == "__main__":
         success = test_trading_environment_integration(trading_file)
 
         if success:
-            print("\n✅ SUCCESS: Bridge components working!")
-            print(f"Trading-ready data available at: {trading_file}")
+            pass
         else:
-            print("\n❌ Integration issues remain")
+            pass
     else:
-        print("\n❌ Failed to create trading-ready data")
+        pass

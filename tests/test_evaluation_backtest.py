@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from evaluation.backtest import run_backtest
-from evaluation.report import generate_report
+from trade_agent.evaluation.backtest import run_backtest
+from trade_agent.evaluation.report import generate_report
 
 
 def test_backtest_basic_long_trend() -> None:

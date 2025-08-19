@@ -7,20 +7,20 @@ and our new data pipeline outputs via the bridge component.
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 import gymnasium as gym
 import numpy as np
 import pandas as pd
 from gymnasium import spaces
 
+
 # Add proper path handling
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
-    from sl.models.base import set_all_seeds
+    from trade_agent.agents.sl.models.base import set_all_seeds
 except ImportError:
     # Fallback if sl module not available
-    def set_all_seeds(seed):
+    def set_all_seeds(seed) -> None:
         np.random.seed(seed)
 
 
@@ -42,7 +42,7 @@ class EnhancedTradingEnvironment(gym.Env):
         window_size: int = 30,
         reward_config: dict = None,
         auto_convert: bool = True
-    ):
+    ) -> None:
         """
         Initialize enhanced trading environment.
 
@@ -100,22 +100,17 @@ class EnhancedTradingEnvironment(gym.Env):
         # Initialize state
         self.reset()
 
-    def _load_and_prepare_data(self, data_file: str):
+    def _load_and_prepare_data(self, data_file: str) -> None:
         """Load and prepare data, auto-converting if necessary."""
-        print(f"Loading data from: {data_file}")
 
         # Load data
         df = pd.read_parquet(data_file)
-        print(f"Data shape: {df.shape}, Columns: {list(df.columns)}")
 
         # Check if we have required SL predictions
         required_cols = ['mu_hat', 'sigma_hat']
         missing_cols = [col for col in required_cols if col not in df.columns]
 
         if missing_cols and self.auto_convert:
-            print(
-                f"Missing required columns {missing_cols}, auto-converting..."
-            )
             df = self._auto_convert_data(df)
         elif missing_cols:
             raise ValueError(
@@ -133,14 +128,12 @@ class EnhancedTradingEnvironment(gym.Env):
 
         # Feature columns summary
         feature_count = len(feature_cols)
-        preview = feature_cols[:5]
+        feature_cols[:5]
         if feature_count > 5:
-            print(f"Feature columns ({feature_count}) preview: {preview} ...")
+            pass
         else:
-            print(f"Feature columns ({feature_count}): {preview}")
-        print(f"Target columns: {target_cols}")
-        excluded_present = [c for c in exclude_cols if c in df.columns]
-        print(f"Excluded columns: {excluded_present}")
+            pass
+        [c for c in exclude_cols if c in df.columns]
 
         # Ensure numeric data types
         for col in feature_cols + target_cols:
@@ -162,7 +155,6 @@ class EnhancedTradingEnvironment(gym.Env):
         else:
             # Default prices if not available
             self.prices = np.ones(len(df), dtype=np.float32) * 100
-            print("Warning: No price data found, using default prices")
 
         # Handle dates if available
         if hasattr(df.index, 'date') or isinstance(df.index, pd.DatetimeIndex):
@@ -170,10 +162,6 @@ class EnhancedTradingEnvironment(gym.Env):
         else:
             self.dates = pd.date_range('2024-01-01', periods=len(df), freq='D')
 
-        print(
-            "Prepared data - Features: "
-            f"{self.features.shape}, Targets: {self.targets.shape}"
-        )
 
     def _auto_convert_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Auto-convert pipeline data to trading format."""
@@ -208,12 +196,10 @@ class EnhancedTradingEnvironment(gym.Env):
         # Add position and cash/equity ratio
         state_dim = 2
 
-        total_dim = feature_dim + prediction_dim + state_dim
-        print(f"Observation dimension: {total_dim} (features: {feature_dim}, predictions: {prediction_dim}, state: {state_dim})")
+        return feature_dim + prediction_dim + state_dim
 
-        return total_dim
 
-    def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
+    def reset(self, seed: int | None = None, options: dict | None = None):
         """Reset environment to initial state."""
         if seed is not None:
             np.random.seed(seed)
@@ -377,9 +363,8 @@ class EnhancedTradingEnvironment(gym.Env):
         }
 
 
-def test_enhanced_environment():
+def test_enhanced_environment() -> bool | None:
     """Test the enhanced environment with bridge integration."""
-    print("=== Testing Enhanced Trading Environment ===")
 
     # Test with bridge-converted data
     try:
@@ -388,7 +373,6 @@ def test_enhanced_environment():
 
         if bridge_files:
             bridge_file = bridge_files[0]
-            print(f"Testing with bridge file: {bridge_file}")
 
             # Create environment
             env = EnhancedTradingEnvironment(
@@ -396,15 +380,13 @@ def test_enhanced_environment():
                 auto_convert=False  # Data already converted
             )
 
-            print("✓ Enhanced environment created successfully")
 
             # Test functionality
             obs, info = env.reset()
-            print(f"✓ Reset successful - observation shape: {obs.shape}")
 
             # Test multiple steps
             total_reward = 0
-            for i in range(5):
+            for _i in range(5):
                 action = env.action_space.sample()
                 obs, reward, terminated, truncated, info = env.step(action)
                 total_reward += reward
@@ -412,17 +394,12 @@ def test_enhanced_environment():
                 if terminated or truncated:
                     break
 
-            print(f"✓ Environment steps successful - total reward: {total_reward:.4f}")
-            print("🎉 Enhanced environment integration successful!")
 
             return True
 
-        else:
-            print("No bridge files found, need to run bridge first")
-            return False
+        return False
 
-    except Exception as e:
-        print(f"✗ Enhanced environment test failed: {e}")
+    except Exception:
         import traceback
         traceback.print_exc()
         return False

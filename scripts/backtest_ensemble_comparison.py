@@ -17,21 +17,24 @@ import os
 import sys
 import traceback
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from stable_baselines3 import PPO, SAC
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import contextlib
 
 from src.ensemble.combine import (  # noqa: E402
     GatingModel,
     RiskGovernor,
     create_validation_environment,
 )
-from src.envs.trading_env import TradingEnvironment  # noqa: E402
-from src.sl.models.base import set_all_seeds  # noqa: E402
+from trade_agent.agents.envs.trading_env import TradingEnvironment  # noqa: E402
+from trade_agent.agents.sl.models.base import set_all_seeds  # noqa: E402
 
 
 class ValidationUtils:
@@ -44,9 +47,9 @@ class ValidationUtils:
         has_inf = np.isinf(data).any()
 
         if has_nan:
-            print(f"⚠ WARNING: {data_name} contains NaN values")
+            pass
         if has_inf:
-            print(f"⚠ WARNING: {data_name} contains Inf values")
+            pass
 
         return not (has_nan or has_inf)
 
@@ -57,7 +60,7 @@ class ValidationUtils:
         within_bounds = min_bound <= action_val <= max_bound
 
         if not within_bounds:
-            print(f"⚠ WARNING: Action {action_val:.4f} outside bounds [{min_bound}, {max_bound}]")
+            pass
 
         return within_bounds
 
@@ -70,21 +73,19 @@ class ValidationUtils:
 
         # Check exposure cap enforcement
         if abs(constrained_val) > risk_governor.max_exposure + 1e-6:
-            print(f"⚠ WARNING: Governor failed to enforce exposure cap: {constrained_val:.4f} > {risk_governor.max_exposure:.4f}")
             return False
 
         # Check if constraint was applied appropriately
         if abs(original_val) > risk_governor.max_exposure and abs(constrained_val) <= risk_governor.max_exposure:
-            print(f"✓ Governor properly constrained action: {original_val:.4f} -> {constrained_val:.4f}")
+            pass
 
         return True
 
 
-def load_model_safe(model_path: str, model_type: str) -> Optional[Any]:
+def load_model_safe(model_path: str, model_type: str) -> Any | None:
     """Load model with comprehensive error handling."""
     try:
         if not os.path.exists(model_path):
-            print(f"Model file not found: {model_path}")
             return None
 
         if model_type.lower() == 'ppo':
@@ -92,13 +93,10 @@ def load_model_safe(model_path: str, model_type: str) -> Optional[Any]:
         elif model_type.lower() == 'sac':
             model = SAC.load(model_path)
         else:
-            print(f"Unsupported model type: {model_type}")
             return None
 
-        print(f"Successfully loaded {model_type.upper()} model from {model_path}")
         return model
-    except Exception as e:
-        print(f"Error loading {model_type} model from {model_path}: {e}")
+    except Exception:
         return None
 
 
@@ -114,8 +112,7 @@ def calculate_sharpe_ratio(returns: list[float], risk_free_rate: float = 0.0) ->
         return 0.0
 
     # Annualize assuming daily returns (252 trading days)
-    sharpe = np.mean(excess_returns) / np.std(excess_returns) * np.sqrt(252)
-    return sharpe
+    return np.mean(excess_returns) / np.std(excess_returns) * np.sqrt(252)
 
 
 def calculate_performance_metrics(returns: list[float], equity_history: list[float],
@@ -168,17 +165,13 @@ def calculate_performance_metrics(returns: list[float], equity_history: list[flo
 def evaluate_individual_policy(model: Any, env: TradingEnvironment, model_name: str,
                              n_episodes: int = 1) -> dict[str, Any]:
     """Evaluate individual policy using the same methodology as existing evaluation scripts."""
-    print(f"\n{'='*60}")
-    print(f"EVALUATING {model_name.upper()} POLICY")
-    print(f"{'='*60}")
 
     episode_returns = []
     episode_rewards = []
     all_equity_history = []
     validation_results = {'nan_inf_checks': [], 'bounds_checks': []}
 
-    for episode in range(n_episodes):
-        print(f"Running episode {episode + 1}/{n_episodes}...")
+    for _episode in range(n_episodes):
 
         obs, info = env.reset()
         total_reward = 0.0
@@ -219,7 +212,6 @@ def evaluate_individual_policy(model: Any, env: TradingEnvironment, model_name: 
         episode_returns.append(episode_return)
         all_equity_history.extend(episode_equity_history)
 
-        print(f"  Episode {episode + 1}: Reward = {total_reward:.6f}, Return = ${episode_return:.2f}, Steps = {step_count}")
 
     # Calculate comprehensive metrics
     metrics = calculate_performance_metrics(episode_rewards, all_equity_history, env.initial_capital)
@@ -234,17 +226,13 @@ def evaluate_individual_policy(model: Any, env: TradingEnvironment, model_name: 
 def evaluate_ensemble_fixed_weight(ppo_model: Any, sac_model: Any, env: TradingEnvironment,
                                   weight: float, n_episodes: int = 1) -> dict[str, Any]:
     """Evaluate ensemble with fixed weight."""
-    print(f"\n{'='*60}")
-    print(f"EVALUATING ENSEMBLE (Fixed Weight w={weight:.2f})")
-    print(f"{'='*60}")
 
     episode_returns = []
     episode_rewards = []
     all_equity_history = []
     validation_results = {'nan_inf_checks': [], 'bounds_checks': [], 'action_combinations': []}
 
-    for episode in range(n_episodes):
-        print(f"Running episode {episode + 1}/{n_episodes}...")
+    for _episode in range(n_episodes):
 
         obs, info = env.reset()
         total_reward = 0.0
@@ -292,7 +280,6 @@ def evaluate_ensemble_fixed_weight(ppo_model: Any, sac_model: Any, env: TradingE
         episode_returns.append(episode_return)
         all_equity_history.extend(episode_equity_history)
 
-        print(f"  Episode {episode + 1}: Reward = {total_reward:.6f}, Return = ${episode_return:.2f}, Steps = {step_count}")
 
     # Calculate comprehensive metrics
     metrics = calculate_performance_metrics(episode_rewards, all_equity_history, env.initial_capital)
@@ -308,9 +295,6 @@ def evaluate_ensemble_fixed_weight(ppo_model: Any, sac_model: Any, env: TradingE
 def evaluate_ensemble_with_gating(ppo_model: Any, sac_model: Any, env: TradingEnvironment,
                                 base_weight: float, n_episodes: int = 1) -> dict[str, Any]:
     """Evaluate ensemble with dynamic gating model."""
-    print(f"\n{'='*60}")
-    print(f"EVALUATING ENSEMBLE (Dynamic Gating, base_weight={base_weight:.2f})")
-    print(f"{'='*60}")
 
     # Create gating model
     feature_names = [
@@ -327,8 +311,7 @@ def evaluate_ensemble_with_gating(ppo_model: Any, sac_model: Any, env: TradingEn
     all_equity_history = []
     validation_results = {'nan_inf_checks': [], 'bounds_checks': [], 'gating_decisions': []}
 
-    for episode in range(n_episodes):
-        print(f"Running episode {episode + 1}/{n_episodes}...")
+    for _episode in range(n_episodes):
 
         obs, info = env.reset()
         total_reward = 0.0
@@ -378,7 +361,6 @@ def evaluate_ensemble_with_gating(ppo_model: Any, sac_model: Any, env: TradingEn
         episode_returns.append(episode_return)
         all_equity_history.extend(episode_equity_history)
 
-        print(f"  Episode {episode + 1}: Reward = {total_reward:.6f}, Return = ${episode_return:.2f}, Steps = {step_count}")
 
     # Calculate comprehensive metrics
     metrics = calculate_performance_metrics(episode_rewards, all_equity_history, env.initial_capital)
@@ -395,9 +377,6 @@ def evaluate_ensemble_with_gating(ppo_model: Any, sac_model: Any, env: TradingEn
 def evaluate_ensemble_with_risk_governor(ppo_model: Any, sac_model: Any, env: TradingEnvironment,
                                         weight: float, n_episodes: int = 1) -> dict[str, Any]:
     """Evaluate ensemble with risk governor."""
-    print(f"\n{'='*60}")
-    print(f"EVALUATING ENSEMBLE (Risk Governor, w={weight:.2f})")
-    print(f"{'='*60}")
 
     # Create risk governor with conservative settings
     risk_governor = RiskGovernor(
@@ -419,8 +398,7 @@ def evaluate_ensemble_with_risk_governor(ppo_model: Any, sac_model: Any, env: Tr
         'actions_taken': 0
     }
 
-    for episode in range(n_episodes):
-        print(f"Running episode {episode + 1}/{n_episodes}...")
+    for _episode in range(n_episodes):
 
         obs, info = env.reset()
         risk_governor.reset_equity_tracking(env.initial_capital)
@@ -479,7 +457,6 @@ def evaluate_ensemble_with_risk_governor(ppo_model: Any, sac_model: Any, env: Tr
         episode_returns.append(episode_return)
         all_equity_history.extend(episode_equity_history)
 
-        print(f"  Episode {episode + 1}: Reward = {total_reward:.6f}, Return = ${episode_return:.2f}, Steps = {step_count}")
 
     # Calculate comprehensive metrics
     metrics = calculate_performance_metrics(episode_rewards, all_equity_history, env.initial_capital)
@@ -501,9 +478,6 @@ def evaluate_ensemble_with_risk_governor(ppo_model: Any, sac_model: Any, env: Tr
 def generate_comparative_analysis(ppo_metrics: dict[str, Any], sac_metrics: dict[str, Any],
                                 ensemble_results: list[dict[str, Any]]) -> dict[str, Any]:
     """Generate comprehensive comparative analysis and recommendations."""
-    print(f"\n{'='*60}")
-    print("COMPARATIVE ANALYSIS")
-    print(f"{'='*60}")
 
     # Individual policy performance
     ppo_return = ppo_metrics['mean_return']
@@ -511,10 +485,6 @@ def generate_comparative_analysis(ppo_metrics: dict[str, Any], sac_metrics: dict
     min_individual_return = min(ppo_return, sac_return)
     max_individual_return = max(ppo_return, sac_return)
 
-    print("Individual Policy Performance:")
-    print(f"  PPO Mean Return: ${ppo_return:.2f}")
-    print(f"  SAC Mean Return: ${sac_return:.2f}")
-    print(f"  Minimum Individual Return: ${min_individual_return:.2f}")
 
     # Analyze ensemble results
     analysis = {
@@ -530,14 +500,12 @@ def generate_comparative_analysis(ppo_metrics: dict[str, Any], sac_metrics: dict
         'recommendations': []
     }
 
-    print("\nEnsemble Performance Analysis:")
     best_ensemble_return = float('-inf')
 
     for i, ensemble_result in enumerate(ensemble_results):
         ensemble_return = ensemble_result['mean_return']
         ensemble_type = ensemble_result.get('ensemble_type', f'ensemble_{i}')
 
-        print(f"  {ensemble_type}: ${ensemble_return:.2f}")
 
         # Track best ensemble
         if ensemble_return > best_ensemble_return:
@@ -558,11 +526,10 @@ def generate_comparative_analysis(ppo_metrics: dict[str, Any], sac_metrics: dict
             'return': ensemble_return
         }
 
-        print(f"    Beats minimum individual return: {'✓' if beats_min else '✗'}")
         if beats_min:
-            print(f"    Improvement over minimum: {improvement_over_min:.2f}%")
+            pass
         else:
-            print(f"    Underperformance vs minimum: {improvement_over_min:.2f}%")
+            pass
 
     # Validation summary
     validation_summary = {
@@ -654,33 +621,26 @@ def generate_comparative_analysis(ppo_metrics: dict[str, Any], sac_metrics: dict
     analysis['recommendations'] = recommendations
 
     # Print summary
-    print("\nValidation Summary:")
-    print(f"  NaN/Inf failures: {validation_summary['total_nan_inf_failures']}")
-    print(f"  Bounds failures: {validation_summary['total_bounds_failures']}")
-    print(f"  Governor failures: {validation_summary['total_governor_failures']}")
 
-    print("\nRecommendations:")
-    for i, rec in enumerate(recommendations, 1):
-        print(f"  {i}. [{rec['priority'].upper()}] {rec['issue']}")
-        print(f"     → {rec['recommendation']}")
+    for i, _rec in enumerate(recommendations, 1):
+        pass
 
     return analysis
 
 
-def save_comprehensive_report(analysis: dict[str, Any], output_file: str = "reports/ensemble_vs_individual_backtest.json"):
+def save_comprehensive_report(analysis: dict[str, Any], output_file: str = "reports/ensemble_vs_individual_backtest.json") -> None:
     """Save comprehensive analysis report to JSON."""
     # Convert numpy arrays and other non-serializable objects
     def make_serializable(obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        elif isinstance(obj, (np.integer, np.floating, np.bool_)):
+        if isinstance(obj, np.integer | np.floating | np.bool_):
             return obj.item()
-        elif isinstance(obj, dict):
+        if isinstance(obj, dict):
             return {k: make_serializable(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return [make_serializable(item) for item in obj]
-        else:
-            return obj
+        return obj
 
     # Make analysis serializable
     serializable_analysis = make_serializable(analysis)
@@ -704,16 +664,10 @@ def save_comprehensive_report(analysis: dict[str, Any], output_file: str = "repo
     with open(output_file, 'w') as f:
         json.dump(serializable_analysis, f, indent=2)
 
-    print(f"\nComprehensive analysis report saved to: {output_file}")
 
 
-def main():
+def main() -> int | None:
     """Main function to run comprehensive ensemble vs individual backtesting."""
-    print("Ensemble vs Individual Policy Backtesting Script")
-    print("=" * 80)
-    print("This script compares ensemble performance against individual PPO and SAC policies")
-    print("using identical data and methodology as existing evaluation scripts.")
-    print("=" * 80)
 
     # Set seeds for reproducibility
     seed = 42
@@ -729,14 +683,11 @@ def main():
             validation_split=0.2,
             seed=seed
         )
-        print(f"Validation environment created with {len(env.prices)} samples")
-    except Exception as e:
-        print(f"Error creating validation environment: {e}")
+    except Exception:
         traceback.print_exc()
         return 1
 
     # Load models
-    print("\nLoading trained models...")
     ppo_paths = ["models/rl/ppo_final.zip", "models/rl/best_model.zip"]
     sac_paths = ["models/rl/sac.zip", "models/rl/sac_final.zip"]
 
@@ -754,28 +705,20 @@ def main():
             break
 
     if ppo_model is None or sac_model is None:
-        print("Error: Could not load both PPO and SAC models. Please ensure models are trained and available.")
         return 1
 
-    print("✓ Successfully loaded both PPO and SAC models")
 
     # Evaluation parameters
     n_episodes = 1  # Use single episode for deterministic comparison (same as existing scripts)
 
     try:
         # Evaluate individual policies
-        print(f"\n{'='*80}")
-        print("INDIVIDUAL POLICY EVALUATION")
-        print(f"{'='*80}")
 
         ppo_metrics = evaluate_individual_policy(ppo_model, env, "PPO", n_episodes)
         env.reset()  # Reset environment between evaluations
         sac_metrics = evaluate_individual_policy(sac_model, env, "SAC", n_episodes)
 
         # Evaluate ensemble configurations
-        print(f"\n{'='*80}")
-        print("ENSEMBLE CONFIGURATION EVALUATION")
-        print(f"{'='*80}")
 
         ensemble_results = []
 
@@ -800,9 +743,6 @@ def main():
         ensemble_results.append(governor_result)
 
         # Generate comprehensive analysis
-        print(f"\n{'='*80}")
-        print("GENERATING COMPREHENSIVE ANALYSIS")
-        print(f"{'='*80}")
 
         analysis = generate_comparative_analysis(ppo_metrics, sac_metrics, ensemble_results)
 
@@ -810,35 +750,24 @@ def main():
         save_comprehensive_report(analysis)
 
         # Print final summary
-        print(f"\n{'='*80}")
-        print("BACKTESTING COMPLETED SUCCESSFULLY")
-        print(f"{'='*80}")
 
-        print("\nKey Findings:")
         min_individual = min(ppo_metrics['mean_return'], sac_metrics['mean_return'])
         best_ensemble = max(ensemble_results, key=lambda x: x['mean_return'])
 
-        print(f"  • PPO Mean Return: ${ppo_metrics['mean_return']:.2f}")
-        print(f"  • SAC Mean Return: ${sac_metrics['mean_return']:.2f}")
-        print(f"  • Best Ensemble ({best_ensemble['ensemble_type']}): ${best_ensemble['mean_return']:.2f}")
 
         if best_ensemble['mean_return'] >= min_individual:
-            print("  ✓ Ensemble meets minimum performance requirement")
+            pass
         else:
-            print("  ✗ Ensemble underperforms minimum individual policy")
+            pass
 
-        print("\nDetailed analysis saved to: reports/ensemble_vs_individual_backtest.json")
 
         # Clean up temporary files
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.remove("data/val_temp.parquet")
-        except FileNotFoundError:
-            pass
 
         return 0
 
-    except Exception as e:
-        print(f"Error during evaluation: {e}")
+    except Exception:
         traceback.print_exc()
         return 1
 

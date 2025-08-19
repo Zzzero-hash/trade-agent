@@ -106,36 +106,31 @@ This command will build the Sphinx documentation and perform linting checks. Any
 
 This section provides quick examples to get started with key functionalities. For more detailed examples and advanced configurations, please refer to the comprehensive documentation in the `docs/source/` directory.
 
-#### 1. Training a Supervised Learning Model
+#### 1. Training a Supervised Learning Model (Hydra)
 
-To train a supervised learning model (e.g., Ridge Regression) using a predefined configuration:
+Train a supervised learning model (e.g., Ridge Regression) using Hydra instead of legacy JSON configs:
 
 ```bash
-poetry run python main.py train-sl --config configs/ridge_config.json
+python scripts/train_sl_hydra.py model=ridge train.data_path=data/sample_data.parquet train.target=close
 ```
 
-This command will:
+This will:
 
-- Load data from `data/sample_data.parquet`.
-- Apply feature engineering.
-- Train a Ridge Regression model based on `configs/ridge_config.json`.
-- Save the trained model and its metadata to the `models/` directory.
+- Load sample data
+- Apply feature engineering
+- Train the specified model using the resolved Hydra config (see `conf/model/ridge.yaml`)
+- Save artifacts & metadata to `models/`
 
 #### 2. Running a Backtest
 
-To run a backtest with a trained model:
+Example backtest (replace model path with an existing artifact):
 
 ```bash
-poetry run python scripts/run_backtest.py --model-path models/sl_model_ridge_20250811_164323.pkl --config configs/ridge_config.json
+python scripts/run_backtest.py --model-path models/sl_model_ridge_TIMESTAMP.pkl \
+  --hydra-overrides "model=ridge train.data_path=data/sample_data.parquet"
 ```
 
-_Note: Replace `sl_model_ridge_20250811_164323.pkl` with the actual path to your trained model._
-
-This command will:
-
-- Load the specified trained model.
-- Execute a backtest using historical data.
-- Generate a backtest report in the `reports/` directory.
+If the script still expects a JSON `--config` argument, JSON configs have been removed. Pass overrides or adapt the script to hydrate from Hydra (`scripts/train_sl_hydra.py --cfg job`).
 
 ### Data & Features
 

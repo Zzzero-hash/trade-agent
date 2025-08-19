@@ -26,12 +26,14 @@ import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 
+
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.envs.trading_env import TradingEnvironment
 from src.eval.backtest import BacktestEngine, ReportGenerator, StressTester
-from src.sl.models.base import set_all_seeds
+from trade_agent.agents.envs.trading_env import TradingEnvironment
+from trade_agent.agents.sl.models.base import set_all_seeds
+
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
@@ -45,7 +47,7 @@ class BestHyperparameterTestEvaluator:
                  best_params_file: str = "reports/reward_params_best_params.json",
                  output_dir: str = "reports",
                  test_split_ratio: float = 0.2,
-                 seed: int = 42):
+                 seed: int = 42) -> None:
         """
         Initialize the test evaluator.
 
@@ -73,10 +75,6 @@ class BestHyperparameterTestEvaluator:
         # Create test slice
         self.train_data, self.test_data = self._create_test_slice()
 
-        print(f"Data loaded: {len(self.df)} total samples")
-        print(f"Train data: {len(self.train_data)} samples ({self.train_data.index[0]} to {self.train_data.index[-1]})")
-        print(f"Test data: {len(self.test_data)} samples ({self.test_data.index[0]} to {self.test_data.index[-1]})")
-        print(f"Best parameters loaded: {self.best_params}")
 
     def _load_best_parameters(self) -> dict[str, float]:
         """Load best parameters from Optuna study."""
@@ -112,8 +110,6 @@ class BestHyperparameterTestEvaluator:
         Returns:
             Trained PPO model
         """
-        print("Training PPO agent with best reward parameters...")
-        print(f"Reward config: {self.best_params}")
 
         # Save training data temporarily
         train_file = self.output_dir / "temp_train_data.parquet"
@@ -175,14 +171,12 @@ class BestHyperparameterTestEvaluator:
             )
 
             # Train the model
-            print(f"Starting training for {total_timesteps} timesteps...")
             model.learn(
                 total_timesteps=total_timesteps,
                 callback=eval_callback,
                 progress_bar=True
             )
 
-            print("Training completed!")
             return model
 
         finally:
@@ -200,7 +194,6 @@ class BestHyperparameterTestEvaluator:
         Returns:
             Dictionary containing evaluation results
         """
-        print("Evaluating model on untouched test set...")
 
         # Save test data temporarily
         test_file = self.output_dir / "temp_test_data.parquet"
@@ -257,7 +250,6 @@ class BestHyperparameterTestEvaluator:
             rewards_series = pd.Series(rewards, index=self.test_data.index[:len(rewards)])
             actions_series = pd.Series(actions, index=self.test_data.index[:len(actions)])
 
-            print(f"Test episode completed. Total reward: {episode_reward:.4f}")
 
             return {
                 'signals': signals_series,
@@ -287,7 +279,6 @@ class BestHyperparameterTestEvaluator:
         Returns:
             Dictionary containing backtest results
         """
-        print("Running comprehensive backtesting analysis...")
 
         # Initialize backtest engine
         backtest_engine = BacktestEngine(
@@ -475,61 +466,33 @@ class BestHyperparameterTestEvaluator:
         Returns:
             Dictionary with paths to all generated files
         """
-        print("=" * 60)
-        print("BEST HYPERPARAMETERS TEST EVALUATION")
-        print("=" * 60)
-        print(f"Using parameters: {self.best_params}")
-        print(f"Test period: {self.test_data.index[0]} to {self.test_data.index[-1]}")
-        print(f"Test samples: {len(self.test_data)}")
-        print()
 
         # 1. Train agent
-        print("Step 1: Training PPO agent with best reward parameters...")
         model = self.train_agent(total_timesteps, eval_freq)
-        print("✓ Training completed\n")
 
         # 2. Evaluate on test set
-        print("Step 2: Evaluating on untouched test set...")
         evaluation_results = self.evaluate_on_test_set(model)
-        print("✓ Evaluation completed\n")
 
         # 3. Run comprehensive backtest
-        print("Step 3: Running comprehensive backtesting...")
         backtest_results = self.run_comprehensive_backtest(
             evaluation_results['signals'],
             evaluation_results['prices']
         )
-        print("✓ Backtesting completed\n")
 
         # 4. Save all results
-        print("Step 4: Saving results...")
         file_paths = self.save_results(evaluation_results, backtest_results, model)
-        print("✓ Results saved\n")
 
         # 5. Print summary
-        print("=" * 60)
-        print("EVALUATION SUMMARY")
-        print("=" * 60)
 
-        metrics = backtest_results['backtest_results']['metrics']
-        print(f"Final Equity: ${evaluation_results['final_equity']:,.2f}")
-        print(f"Total Return: {((evaluation_results['final_equity'] / 100000.0) - 1) * 100:.2f}%")
-        print(f"CAGR: {metrics.get('cagr', 0) * 100:.2f}%")
-        print(f"Sharpe Ratio: {metrics.get('sharpe_ratio', 0):.4f}")
-        print(f"Calmar Ratio: {metrics.get('calmar_ratio', 0):.4f}")
-        print(f"Max Drawdown: {metrics.get('max_drawdown', 0) * 100:.2f}%")
-        print(f"Hit Ratio: {metrics.get('hit_ratio', 0) * 100:.2f}%")
-        print(f"Profit Factor: {metrics.get('profit_factor', 0):.4f}")
-        print()
+        backtest_results['backtest_results']['metrics']
 
-        print("Generated Files:")
-        for name, path in file_paths.items():
-            print(f"  {name}: {path}")
+        for _name, _path in file_paths.items():
+            pass
 
         return file_paths
 
 
-def main():
+def main() -> None:
     """Main function for command-line interface."""
     import argparse
 
@@ -567,10 +530,8 @@ def main():
             eval_freq=args.eval_freq
         )
 
-        print("\nEvaluation completed successfully!")
 
-    except Exception as e:
-        print(f"Error during evaluation: {e}")
+    except Exception:
         raise
 
 

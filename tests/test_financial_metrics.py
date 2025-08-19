@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from src.eval.financial_metrics import (
+from trade_agent.evaluation.financial_metrics import (
     cagr,
     calculate_metrics,
     max_drawdown,
@@ -25,7 +25,7 @@ def test_sharpe_and_sortino_positive_sequence() -> None:
 def test_max_drawdown_simple() -> None:
     # Up then down 10%
     returns = pd.Series([0.1, -0.05, -0.05])
-    dd = max_drawdown(returns)
+    dd = max_drawdown(returns)  # negative percent
     # Roughly -9.52% ( (1.1*0.95*0.95)/1.1 -1 ) *100
     assert dd < 0
     assert -15 < dd < -5

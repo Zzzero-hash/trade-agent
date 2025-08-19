@@ -7,20 +7,19 @@ import sys
 
 import pandas as pd
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.sl.models.deep_learning import CNNLSTMModel
+from trade_agent.agents.sl.models.deep_learning import CNNLSTMModel
 
 
-def main():
+def main() -> None:
     # Load data
     df = pd.read_parquet('data/features.parquet')
     y = df['mu_hat'].values
     X = df.drop(columns=['mu_hat', 'sigma_hat']).values
 
-    print(f"X shape: {X.shape}")
-    print(f"y shape: {y.shape}")
 
     # Create CNN-LSTM model
     config = {
@@ -40,23 +39,15 @@ def main():
     }
 
     model = CNNLSTMModel(config)
-    print("Model created successfully")
-    print(f"Model device: {model.device}")
 
     # Try to fit the model
     try:
-        print("Fitting model...")
         model.fit(X, y)
-        print("Model fitted successfully!")
 
         # Try to make predictions
-        print("Making predictions...")
-        predictions = model.predict(X[:20])
-        print(f"Predictions shape: {predictions.shape}")
-        print(f"First few predictions: {predictions[:5]}")
+        model.predict(X[:20])
 
-    except Exception as e:
-        print(f"Error during training: {e}")
+    except Exception:
         import traceback
         traceback.print_exc()
 

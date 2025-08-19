@@ -27,28 +27,27 @@ Example usage:
 """
 
 import argparse
+import contextlib
 import os
 import sys
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
+
 
 try:
     from stable_baselines3 import PPO, SAC
     from stable_baselines3.common.base_class import BaseAlgorithm
 except ImportError:
-    print("stable_baselines3 is required but not installed.")
-    print("Please install it with: pip install stable-baselines3")
     sys.exit(1)
 
 # Add parent directory to path to import from src
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from src.envs.trading_env import TradingEnvironment
-except ImportError as e:
-    print(f"Warning: Could not import TradingEnvironment: {e}")
+    from trade_agent.agents.envs.trading_env import TradingEnvironment
+except ImportError:
     TradingEnvironment = None
 
 
@@ -101,10 +100,10 @@ class RiskGovernor:
         self,
         max_exposure: float = 1.0,
         max_steps_per_bar: int = 1,
-        drawdown_thresholds: Optional[list[float]] = None,
-        drawdown_scalings: Optional[list[float]] = None,
+        drawdown_thresholds: list[float] | None = None,
+        drawdown_scalings: list[float] | None = None,
         initial_equity: float = 100000.0
-    ):
+    ) -> None:
         """
         Initialize the risk governor.
 
@@ -132,9 +131,9 @@ class RiskGovernor:
 
         # Sort thresholds and scalings in descending order of thresholds
         sorted_pairs = sorted(
-            zip(self.drawdown_thresholds, self.drawdown_scalings),
+            zip(self.drawdown_thresholds, self.drawdown_scalings, strict=False),
             key=lambda x: x[0], reverse=True)
-        self.drawdown_thresholds, self.drawdown_scalings = zip(*sorted_pairs)
+        self.drawdown_thresholds, self.drawdown_scalings = zip(*sorted_pairs, strict=False)
 
         self.initial_equity = initial_equity
         self.max_equity = initial_equity  # Track maximum equity achieved
@@ -172,9 +171,6 @@ class RiskGovernor:
         # Check if we've exceeded max steps per bar
         if self.steps_in_current_bar > self.max_steps_per_bar:
             # Prevent trading by setting action to maintain current position
-            print(f"Max steps per bar exceeded "
-                  f"({self.steps_in_current_bar} > {self.max_steps_per_bar}), "
-                  f"preventing action: {action[0]:.4f}")
             return np.array([0.0])  # No change in position
 
         # Update equity tracking
@@ -234,18 +230,14 @@ class RiskGovernor:
         # Determine scaling factor based on drawdown thresholds
         scaling_factor = 1.0
         for threshold, scaling in zip(self.drawdown_thresholds,
-                                       self.drawdown_scalings):
+                                       self.drawdown_scalings, strict=False):
             if drawdown >= threshold:
                 scaling_factor = scaling
                 break
 
         # Apply scaling if needed
         if scaling_factor < 1.0:
-            scaled_action = action * scaling_factor
-            print(f"Drawdown {drawdown:.2%} >= {threshold:.2%}, "
-                  f"scaling action by {scaling_factor:.2f}: "
-                  f"{action[0]:.4f} -> {scaled_action[0]:.4f}")
-            return scaled_action
+            return action * scaling_factor
 
         return action
 
@@ -269,9 +261,7 @@ class RiskGovernor:
 
         # If action was constrained, print a message
         if not np.isclose(constrained_action[0], action[0], atol=1e-6):
-            print(f"Exposure cap applied: {action[0]:.4f} -> "
-                  f"{constrained_action[0]:.4f} "
-                  f"(max exposure: {self.max_exposure:.2f})")
+            pass
 
         return constrained_action
 
@@ -289,7 +279,7 @@ class RiskGovernor:
 
     def reset_equity_tracking(
         self,
-        initial_equity: Optional[float] = None
+        initial_equity: float | None = None
     ) -> None:
         """
         Reset equity tracking. Call this when starting a new backtest or
@@ -327,7 +317,7 @@ class GatingModel:
         fixed: Always return 0.5 (no gating)
     """
 
-    def __init__(self, feature_names: list[str], method: str = "volatility_threshold"):
+    def __init__(self, feature_names: list[str], method: str = "volatility_threshold") -> None:
         """
         Initialize the gating model.
 
@@ -377,21 +367,19 @@ class GatingModel:
             if avg_volatility > self.volatility_threshold:
                 # High volatility regime: prefer PPO (lower SAC weight)
                 return 0.3
-            else:
-                # Low volatility regime: prefer SAC (higher SAC weight)
-                # Rationale: In low volatility regimes, SAC's superior sample efficiency
-                # and asymptotic optimality can be leveraged.
-                return 0.7
-        elif self.method == "volatility_inverse":
+            # Low volatility regime: prefer SAC (higher SAC weight)
+            # Rationale: In low volatility regimes, SAC's superior sample efficiency
+            # and asymptotic optimality can be leveraged.
+            return 0.7
+        if self.method == "volatility_inverse":
             # Use inverse volatility: higher vol -> lower SAC weight
             # This provides a smooth transition between models based on volatility
             # Normalize volatility to [0, 1] range using exponential scaling
             normalized_vol = 1 - np.exp(-self.volatility_scaling * avg_volatility)
             # Invert so that high volatility gives low SAC weight
             return 1.0 - normalized_vol
-        else:
-            # Default to fixed weight if method not recognized
-            return 0.5
+        # Default to fixed weight if method not recognized
+        return 0.5
 
     def _extract_volatility_features(self, obs: np.ndarray) -> dict[str, float]:
         """
@@ -418,7 +406,7 @@ class GatingModel:
         return vol_features
 
 
-def load_model(model_path: str, model_type: str) -> Optional[BaseAlgorithm]:
+def load_model(model_path: str, model_type: str) -> BaseAlgorithm | None:
     """
     Load a trained model from disk.
 
@@ -431,7 +419,6 @@ def load_model(model_path: str, model_type: str) -> Optional[BaseAlgorithm]:
     """
     try:
         if not os.path.exists(model_path):
-            print(f"Model file not found: {model_path}")
             return None
 
         if model_type.lower() == 'ppo':
@@ -439,21 +426,18 @@ def load_model(model_path: str, model_type: str) -> Optional[BaseAlgorithm]:
         elif model_type.lower() == 'sac':
             model = SAC.load(model_path)
         else:
-            print(f"Unsupported model type: {model_type}")
             return None
 
-        print(f"Successfully loaded {model_type} model from {model_path}")
         return model
-    except Exception as e:
-        print(f"Error loading {model_type} model from {model_path}: {e}")
+    except Exception:
         return None
 
 
 def ensemble_action(
     obs: np.ndarray,
     w: float = 0.5,
-    gating: Optional[GatingModel] = None,
-    risk_governor: Optional[RiskGovernor] = None,
+    gating: GatingModel | None = None,
+    risk_governor: RiskGovernor | None = None,
     current_equity: float = 100000.0
 ) -> np.ndarray:
     """
@@ -488,11 +472,9 @@ def ensemble_action(
     if gating is not None:
         # Use gating model to determine dynamic weight
         dynamic_w = gating.get_weight(obs)
-        print(f"Using dynamic weight from gating model: {dynamic_w:.3f}")
     else:
         # Use fixed weight
         dynamic_w = w
-        print(f"Using fixed weight: {dynamic_w:.3f}")
 
     # Combine actions with weighted average
     # a = w * a_sac + (1-w) * a_ppo
@@ -543,7 +525,7 @@ def create_validation_environment(
     val_data.to_parquet(val_file)
 
     # Create validation environment with fixed seed
-    eval_env = TradingEnvironment(
+    return TradingEnvironment(
         data_file=val_file,
         initial_capital=initial_capital,
         transaction_cost=transaction_cost,
@@ -551,7 +533,6 @@ def create_validation_environment(
         window_size=window_size
     )
 
-    return eval_env
 
 
 def backtest_ensemble(
@@ -586,15 +567,13 @@ def backtest_ensemble(
             ]
             gating_model = GatingModel(feature_names,
                                           method="volatility_threshold")
-            print("Using gating model for dynamic weight determination")
         else:
-            print(f"Using fixed weight: {w}")
+            pass
 
         # Initialize risk governor if requested
         risk_governor = None
         if use_risk_governor:
             risk_governor = RiskGovernor()
-            print("Using risk governor for risk management")
 
         # Reset environment
         obs, info = env.reset()
@@ -610,15 +589,10 @@ def backtest_ensemble(
         actions_taken = 0
         actions_prevented = 0
 
-        if use_gating and use_risk_governor:
-            print("Starting backtest with gating model and risk governor")
-        elif use_gating:
-            print("Starting backtest with gating model")
-        elif use_risk_governor:
-            print("Starting backtest with risk governor")
+        if use_gating and use_risk_governor or use_gating or use_risk_governor:
+            pass
         else:
-            print(f"Starting backtest with fixed ensemble weight w={w}")
-        print("Step\tReward\tTotal Reward")
+            pass
 
         while not done:
             # Get ensemble action with risk constraints if applicable
@@ -648,73 +622,54 @@ def backtest_ensemble(
             positions_history.append(info['position'])
 
             if step_count % 100 == 0:  # Print every 100 steps
-                print(f"{step_count}\t{reward:.4f}\t{total_reward:.4f}")
+                pass
 
         # Calculate comprehensive performance metrics
         final_equity = info['equity']
-        total_return = (final_equity - initial_equity) / initial_equity
-        avg_return = total_reward / step_count if step_count > 0 else 0
+        (final_equity - initial_equity) / initial_equity
+        total_reward / step_count if step_count > 0 else 0
 
         # Calculate Sharpe ratio (assuming risk-free rate of 0 for simplicity)
         if len(returns_history) > 1:
-            sharpe_ratio = np.mean(returns_history) / (np.std(returns_history) + 1e-8) * np.sqrt(252)  # Annualized
+            np.mean(returns_history) / (np.std(returns_history) + 1e-8) * np.sqrt(252)  # Annualized
         else:
-            sharpe_ratio = 0
+            pass
 
         # Calculate maximum drawdown
         equity_array = np.array(equity_history)
         cumulative_returns = (equity_array - initial_equity) / initial_equity
         running_max = np.maximum.accumulate(cumulative_returns)
         drawdown = cumulative_returns - running_max
-        max_drawdown = np.min(drawdown) if len(drawdown) > 0 else 0
+        np.min(drawdown) if len(drawdown) > 0 else 0
 
         # Calculate volatility
-        volatility = np.std(returns_history) * np.sqrt(252) if len(returns_history) > 1 else 0  # Annualized
+        np.std(returns_history) * np.sqrt(252) if len(returns_history) > 1 else 0  # Annualized
 
         # Calculate win rate
         positive_returns = sum(1 for r in returns_history if r > 0)
-        win_rate = positive_returns / len(returns_history) if len(returns_history) > 0 else 0
+        positive_returns / len(returns_history) if len(returns_history) > 0 else 0
 
         # Calculate average position size
-        avg_position = np.mean(np.abs(positions_history)) if len(positions_history) > 0 else 0
+        np.mean(np.abs(positions_history)) if len(positions_history) > 0 else 0
 
         # Print comprehensive results
-        print(f"\n{'='*60}")
-        print("BACKTEST RESULTS")
-        print(f"{'='*60}")
-        print(f"Backtest completed after {step_count} steps")
-        print(f"Initial equity: ${initial_equity:,.2f}")
-        print(f"Final equity: ${final_equity:,.2f}")
-        print(f"Total return: {total_return:.2%}")
-        print(f"Average return per step: {avg_return:.6f}")
-        print(f"Total reward: {total_reward:.4f}")
-        print(f"Annualized Sharpe ratio: {sharpe_ratio:.2f}")
-        print(f"Maximum drawdown: {max_drawdown:.2%}")
-        print(f"Annualized volatility: {volatility:.2%}")
-        print(f"Win rate: {win_rate:.2%}")
-        print(f"Average position size: {avg_position:.2f}")
 
         if use_risk_governor:
             total_actions = actions_taken + actions_prevented
             if total_actions > 0:
-                prevention_rate = actions_prevented / total_actions
-                print(f"Risk governor prevented actions: {actions_prevented}/{total_actions} ({prevention_rate:.2%})")
+                actions_prevented / total_actions
 
-        print(f"{'='*60}")
 
         # Clean up temporary file
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.remove("data/val_temp.parquet")
-        except FileNotFoundError:
-            pass
 
-    except Exception as e:
-        print(f"Error during backtest: {e}")
+    except Exception:
         import traceback
         traceback.print_exc()
 
 
-def main():
+def main() -> None:
     """Main function for CLI execution."""
     parser = argparse.ArgumentParser(
         description="Ensemble combiner for RL models with comprehensive backtesting capabilities",
@@ -754,20 +709,15 @@ Features:
 
     # Validate parameters
     if not 0.0 <= args.w <= 1.0:
-        print(f"Error: Weight must be between 0.0 and 1.0, got {args.w}")
         sys.exit(1)
 
     if args.gating and args.risk_governor:
-        print("Running ensemble backtest with gating model and risk governor")
         backtest_ensemble(w=args.w, use_gating=True, use_risk_governor=True)
     elif args.gating:
-        print("Running ensemble backtest with gating model")
         backtest_ensemble(w=args.w, use_gating=True)
     elif args.risk_governor:
-        print("Running ensemble backtest with risk governor")
         backtest_ensemble(w=args.w, use_risk_governor=True)
     else:
-        print(f"Running ensemble backtest with w={args.w}")
         backtest_ensemble(w=args.w)
 
 

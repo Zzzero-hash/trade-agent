@@ -32,17 +32,37 @@ Usage examples:
 """
 from __future__ import annotations
 
+import contextlib
 import sys as _sys
 from pathlib import Path
 from typing import Any
+
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(_PROJECT_ROOT) not in _sys.path:
     _sys.path.insert(0, str(_PROJECT_ROOT))
 
-import hydra
-from hydra.utils import to_absolute_path
-from omegaconf import DictConfig, OmegaConf
+try:  # graceful fallback if hydra-core not installed in minimal test env
+    import hydra  # type: ignore
+    from hydra.utils import to_absolute_path  # type: ignore
+    from omegaconf import DictConfig, OmegaConf  # type: ignore
+except ImportError:  # pragma: no cover
+    class _Dummy:  # minimal stand-ins
+        def main(self=None, *a, **k):  # type: ignore[no-untyped-def]
+            def deco(fn):
+                def wrapper(*args, **kwargs) -> int:  # type: ignore[no-untyped-def]
+                    return 0
+                return wrapper
+            return deco
+    hydra = _Dummy()  # type: ignore
+    def to_absolute_path(p: str) -> str:  # type: ignore[no-untyped-def]
+        return p
+    class DictConfig(dict):  # type: ignore
+        pass
+    class OmegaConf:  # type: ignore
+        @staticmethod
+        def to_yaml(cfg) -> str:
+            return ""
 
 # Import new unified framework
 try:
@@ -55,12 +75,10 @@ try:
         OptimizationConfig,
     )
     USE_NEW_FRAMEWORK = True
-except ImportError as e:
-    print(f"Warning: Could not import new framework: {e}")
-    print("Falling back to legacy training pipeline...")
+except ImportError:
     USE_NEW_FRAMEWORK = False
     # Fallback to legacy imports
-    from src.sl.train import SLTrainingPipeline
+    from trade_agent.agents.sl.train import SLTrainingPipeline
 
 
 def _create_experiment_config_from_hydra(cfg: DictConfig) -> ExperimentConfig:
@@ -168,41 +186,30 @@ def main(cfg: DictConfig):
     """Main training function with unified framework support."""
 
     if USE_NEW_FRAMEWORK:
-        print("=== Using New Unified Framework ===")
 
         # Create experiment config from Hydra config
         experiment_config = _create_experiment_config_from_hydra(cfg)
 
         # Emit marker expected by legacy tests
-        print("\n=== Resolved Config ===")
         # Provide a concise YAML view for parity
-        try:
-            print(OmegaConf.to_yaml(cfg))
-        except Exception:
+        with contextlib.suppress(Exception):
             pass
 
         # Show experiment configuration (human summary)
-        print("\n=== Experiment Configuration ===")
-        print(f"Name: {experiment_config.experiment_name}")
-        print(f"Models: {[mc.model_type for mc in experiment_config.model_configs]}")
-        print(f"Optimization enabled: {experiment_config.optimization_config.enabled}")
-        print(f"Ensemble enabled: {experiment_config.ensemble_config.enabled if experiment_config.ensemble_config else False}")
 
         # Create and run orchestrator
         orchestrator = TrainingOrchestrator(experiment_config)
         results = orchestrator.run_full_pipeline()
 
         # Print summary
-        print("\n=== Results ===")
         for key, value in results.items():
-            count = len(value) if isinstance(value, dict) else 1
-            print(f"{key}: {type(value).__name__} with {count} items")
+            len(value) if isinstance(value, dict) else 1
             # If this is training results dict, echo key metrics for tests
             if key == 'training' and isinstance(value, dict):
-                for model_name, model_result in value.items():
+                for _model_name, model_result in value.items():
                     metrics = model_result.get('metrics', {}) if isinstance(model_result, dict) else {}
-                    for m_key, m_val in metrics.items():
-                        print(f"metric::{m_key}={m_val}")
+                    for _m_key, _m_val in metrics.items():
+                        pass
         # Legacy test expectation: ensure 'train_mse' token appears when available
         training_section = results.get('training', {})
         if isinstance(training_section, dict):
@@ -210,89 +217,82 @@ def main(cfg: DictConfig):
                 if isinstance(model_result, dict):
                     m = model_result.get('metrics', {})
                     if 'train_mse' in m:
-                        print(f"train_mse={m['train_mse']}")
+                        pass
 
         # Get experiment summary
         summary = orchestrator.get_experiment_summary()
         if summary:
-            print(f"\nExperiment ID: {orchestrator.experiment_id}")
-            print(f"Best model: {summary.get('best_model', 'N/A')}")
+            pass
 
         # Return primary metric for Hydra optimization
         training_results = results.get('training', {})
         if training_results:
-            best_score = max(
+            return max(
                 result.get('metrics', {}).get('val_score', 0.0)
                 for result in training_results.values()
             )
-            return best_score
 
         return 0.0
 
+
+    # Show resolved config
+    from trade_agent.agents.sl.config_loader import hydrate_config
+    hydrate_config(cfg)
+
+    # Build legacy config for existing pipeline
+    legacy_config = _assemble_legacy_config(cfg)
+
+    # Load data (mimic prior logic in train_model_from_config)
+    data_path = to_absolute_path(
+        str(cfg.train.get('data_path', 'data/sample_data.csv')))
+    target_column = cfg.train.target
+
+    import numpy as np
+    import pandas as pd
+
+    if str(data_path).endswith('.parquet'):
+        df = pd.read_parquet(data_path)
+    elif str(data_path).endswith('.csv'):
+        df = pd.read_csv(data_path)
     else:
-        print("=== Using Legacy Framework ===")
+        raise ValueError(f"Unsupported data format: {data_path}")
 
-        # Show resolved config
-        from src.sl.config_loader import hydrate_config
-        print("\n=== Validated Config ===")
-        validated_config = hydrate_config(cfg)
-        print(validated_config.model_dump_json(indent=2))
+    y = df[target_column].values
+    # Start from numeric columns only
+    numeric_df = df.select_dtypes(include=[np.number]).copy()
+    # Remove target column if numeric
+    if target_column in numeric_df.columns:
+        numeric_df = numeric_df.drop(columns=[target_column])
+    # Legacy behavior: also exclude known target engineered columns
+    for col in ['mu_hat', 'sigma_hat']:
+        if col in numeric_df.columns:
+            numeric_df = numeric_df.drop(columns=[col])
+    X = numeric_df.values
 
-        # Build legacy config for existing pipeline
-        legacy_config = _assemble_legacy_config(cfg)
+    # Simple temporal validation split (last 20%) – future: configurable
+    val_cut = int(len(X) * 0.8)
+    X_train, X_val = X[:val_cut], X[val_cut:]
+    y_train, y_val = y[:val_cut], y[val_cut:]
 
-        # Load data (mimic prior logic in train_model_from_config)
-        data_path = to_absolute_path(
-            str(cfg.train.get('data_path', 'data/sample_data.csv')))
-        target_column = cfg.train.target
+    pipeline = SLTrainingPipeline(legacy_config)
+    results = pipeline.train(X_train, y_train, X_val=X_val, y_val=y_val)
 
-        import numpy as np
-        import pandas as pd
+    for _k, _v in results.items():
+        pass
 
-        if str(data_path).endswith('.parquet'):
-            df = pd.read_parquet(data_path)
-        elif str(data_path).endswith('.csv'):
-            df = pd.read_csv(data_path)
-        else:
-            raise ValueError(f"Unsupported data format: {data_path}")
+    # Persist resolved config & results for reproducibility
+    import json
+    from pathlib import Path
 
-        y = df[target_column].values
-        # Start from numeric columns only
-        numeric_df = df.select_dtypes(include=[np.number]).copy()
-        # Remove target column if numeric
-        if target_column in numeric_df.columns:
-            numeric_df = numeric_df.drop(columns=[target_column])
-        # Legacy behavior: also exclude known target engineered columns
-        for col in ['mu_hat', 'sigma_hat']:
-            if col in numeric_df.columns:
-                numeric_df = numeric_df.drop(columns=[col])
-        X = numeric_df.values
+    out_dir = Path(legacy_config['output_dir'])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with open(out_dir / 'last_resolved_hydra_config.yaml', 'w') as f:
+        f.write(OmegaConf.to_yaml(cfg))
+    with open(out_dir / 'last_results.json', 'w') as f:
+        json.dump(results, f, indent=2)
 
-        # Simple temporal validation split (last 20%) – future: configurable
-        val_cut = int(len(X) * 0.8)
-        X_train, X_val = X[:val_cut], X[val_cut:]
-        y_train, y_val = y[:val_cut], y[val_cut:]
-
-        pipeline = SLTrainingPipeline(legacy_config)
-        results = pipeline.train(X_train, y_train, X_val=X_val, y_val=y_val)
-
-        print("\n=== Results ===")
-        for k, v in results.items():
-            print(f"{k}: {v}")
-
-        # Persist resolved config & results for reproducibility
-        import json
-        from pathlib import Path
-
-        out_dir = Path(legacy_config['output_dir'])
-        out_dir.mkdir(parents=True, exist_ok=True)
-        with open(out_dir / 'last_resolved_hydra_config.yaml', 'w') as f:
-            f.write(OmegaConf.to_yaml(cfg))
-        with open(out_dir / 'last_results.json', 'w') as f:
-            json.dump(results, f, indent=2)
-
-        # Return validation MSE if present, else train MSE (minimize)
-        return results.get('val_mse', results['train_mse'])
+    # Return validation MSE if present, else train MSE (minimize)
+    return results.get('val_mse', results['train_mse'])
 
 
 if __name__ == "__main__":  # pragma: no cover

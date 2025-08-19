@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from evaluation.metrics import compute_metrics
+from trade_agent.evaluation.metrics import compute_metrics
 
 
 def test_metrics_empty_series() -> None:

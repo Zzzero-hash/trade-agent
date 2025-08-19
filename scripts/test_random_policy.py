@@ -6,15 +6,15 @@ Script to evaluate a random policy in the trading environment.
 import os
 import sys
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.envs.trading_env import TradingEnvironment
+from trade_agent.agents.envs.trading_env import TradingEnvironment
 
 
 def test_random_policy():
     """Test a random policy in the trading environment."""
-    print("Testing random policy...")
 
     # Create environment with fixed seed for deterministic results
     env = TradingEnvironment(seed=42)
@@ -39,8 +39,6 @@ def test_random_policy():
         if terminated or truncated:
             break
 
-    print(f"Random policy: {steps} steps, total reward: {total_reward:.6f}, final equity: ${info['equity']:.2f}")
-    print(f"Return: ${info['equity'] - env.initial_capital:.2f}")
 
     return total_reward, info['equity']
 

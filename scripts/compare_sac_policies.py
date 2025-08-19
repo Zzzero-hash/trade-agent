@@ -13,11 +13,14 @@ import numpy as np
 import pandas as pd
 from stable_baselines3 import SAC
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.envs.trading_env import TradingEnvironment  # noqa: E402
-from src.sl.models.base import set_all_seeds  # noqa: E402
+import contextlib
+
+from trade_agent.agents.envs.trading_env import TradingEnvironment  # noqa: E402
+from trade_agent.agents.sl.models.base import set_all_seeds  # noqa: E402
 
 
 def load_sac_model(model_path: str) -> SAC:
@@ -30,10 +33,7 @@ def load_sac_model(model_path: str) -> SAC:
     Returns:
         Loaded SAC model
     """
-    print(f"Loading SAC model from {model_path}...")
-    model = SAC.load(model_path)
-    print("Model loaded successfully!")
-    return model
+    return SAC.load(model_path)
 
 
 def create_validation_environment(
@@ -70,7 +70,7 @@ def create_validation_environment(
     val_data.to_parquet(val_file)
 
     # Create validation environment with fixed seed
-    eval_env = TradingEnvironment(
+    return TradingEnvironment(
         data_file=val_file,
         initial_capital=initial_capital,
         transaction_cost=transaction_cost,
@@ -79,7 +79,6 @@ def create_validation_environment(
         window_size=window_size
     )
 
-    return eval_env
 
 
 def collect_actions(
@@ -100,16 +99,12 @@ def collect_actions(
     Returns:
         Tuple of (actions, rewards, returns)
     """
-    policy_type = "deterministic" if deterministic else "stochastic"
-    print(f"Collecting actions with {policy_type} policy for {n_episodes} " +
-          "episode(s)...")
 
     all_actions = []
     all_rewards = []
     all_returns = []
 
-    for episode in range(n_episodes):
-        print(f"Running episode {episode + 1}/{n_episodes}...")
+    for _episode in range(n_episodes):
 
         # Reset environment
         obs, _ = env.reset()
@@ -144,14 +139,10 @@ def collect_actions(
         all_rewards.extend(episode_rewards)
         all_returns.append(episode_return)
 
-        print(f"  Episode {episode + 1}: Reward = {total_reward:.4f}, " +
-              f"Return = ${episode_return:.2f}, Steps = {step_count}")
 
     # Clean up temporary file
-    try:
+    with contextlib.suppress(FileNotFoundError):
         os.remove("data/val_temp.parquet")
-    except FileNotFoundError:
-        pass
 
     return all_actions, all_rewards, all_returns
 
@@ -166,8 +157,6 @@ def compare_policies(model: SAC) -> dict[str, Any]:
     Returns:
         Dictionary with comparison metrics
     """
-    print("Comparing deterministic vs stochastic policies...")
-    print("=" * 50)
 
     # Collect actions from deterministic policy
     det_env = create_validation_environment()
@@ -188,7 +177,7 @@ def compare_policies(model: SAC) -> dict[str, Any]:
     sto_returns = np.array(sto_returns)
 
     # Calculate metrics
-    metrics = {
+    return {
         'deterministic': {
             'mean_action': float(np.mean(det_actions)),
             'std_action': float(np.std(det_actions)),
@@ -216,11 +205,10 @@ def compare_policies(model: SAC) -> dict[str, Any]:
         }
     }
 
-    return metrics
 
 
 def save_comparison(metrics: dict[str, Any],
-                   output_file: str = "reports/sac_policy_comparison.json"):
+                   output_file: str = "reports/sac_policy_comparison.json") -> None:
     """
     Save policy comparison to a JSON file.
 
@@ -236,7 +224,7 @@ def save_comparison(metrics: dict[str, Any],
             for sub_key, sub_value in value.items():
                 if isinstance(sub_value, np.ndarray):
                     serializable_metrics[key][sub_key] = sub_value.tolist()
-                elif isinstance(sub_value, (np.integer, np.floating)):
+                elif isinstance(sub_value, np.integer | np.floating):
                     serializable_metrics[key][sub_key] = sub_value.item()
                 else:
                     serializable_metrics[key][sub_key] = sub_value
@@ -248,13 +236,10 @@ def save_comparison(metrics: dict[str, Any],
     with open(output_file, 'w') as f:
         json.dump(serializable_metrics, f, indent=2)
 
-    print(f"Comparison saved to {output_file}")
 
 
-def main():
+def main() -> int:
     """Main comparison function."""
-    print("SAC Agent Policy Comparison Script")
-    print("=" * 50)
 
     # Set seeds for reproducibility
     seed = 42
@@ -266,7 +251,6 @@ def main():
         with open(config_path) as f:
             config = json.load(f)
     except FileNotFoundError:
-        print(f"Configuration file {config_path} not found, using defaults.")
         config = {}
 
     # Extract configuration parameters
@@ -281,88 +265,50 @@ def main():
     ]
 
     model = None
-    loaded_model_path = None
 
     # Try to load model
     for model_path in model_paths:
         if os.path.exists(model_path):
             try:
                 model = load_sac_model(model_path)
-                loaded_model_path = model_path
                 break
-            except Exception as e:
-                print(f"Failed to load model from {model_path}: {e}")
+            except Exception:
+                pass
 
     if model is None:
-        print("No trained SAC model found. Please train a model first.")
         return 1
 
-    print(f"Using model from: {loaded_model_path}")
 
     # Compare policies
     metrics = compare_policies(model)
 
     # Print results
-    print("\n" + "=" * 50)
-    print("POLICY COMPARISON RESULTS")
-    print("=" * 50)
 
-    print("\nDeterministic Policy:")
-    print(f"  Mean Action: {metrics['deterministic']['mean_action']:.4f}")
-    print(f"  Action Std Dev: {metrics['deterministic']['std_action']:.4f}")
-    print(f"  Mean Reward: {metrics['deterministic']['mean_reward']:.6f}")
-    print(f"  Reward Std Dev: {metrics['deterministic']['std_reward']:.6f}")
-    print(f"  Mean Return: ${metrics['deterministic']['mean_return']:.2f}")
-    print(f"  Return Std Dev: ${metrics['deterministic']['std_return']:.2f}")
-    print(f"  Action Consistency: {metrics['deterministic']['action_consistency']:.4f}")
 
-    print("\nStochastic Policy:")
-    print(f"  Mean Action: {metrics['stochastic']['mean_action']:.4f}")
-    print(f"  Action Std Dev: {metrics['stochastic']['std_action']:.4f}")
-    print(f"  Mean Reward: {metrics['stochastic']['mean_reward']:.6f}")
-    print(f"  Reward Std Dev: {metrics['stochastic']['std_reward']:.6f}")
-    print(f"  Mean Return: ${metrics['stochastic']['mean_return']:.2f}")
-    print(f"  Return Std Dev: ${metrics['stochastic']['std_return']:.2f}")
-    print(f"  Action Consistency: {metrics['stochastic']['action_consistency']:.4f}")
 
-    print("\nComparison:")
-    print(f"  Action Variation Ratio: {metrics['comparison']['action_variation_ratio']:.4f}")
-    print(f"  Reward Variation Ratio: {metrics['comparison']['reward_variation_ratio']:.4f}")
-    print(f"  Exploration Level: {metrics['comparison']['exploration_level']}")
 
     # Analysis
-    print("\nPolicy Analysis:")
-    if metrics['comparison']['exploration_level'] == 'high':
-        print("  - Policy shows high exploration behavior")
-        print("  - Stochastic policy takes significantly more varied actions")
-    elif metrics['comparison']['exploration_level'] == 'moderate':
-        print("  - Policy shows moderate exploration behavior")
-        print("  - Stochastic policy takes somewhat more varied actions")
+    if metrics['comparison']['exploration_level'] == 'high' or metrics['comparison']['exploration_level'] == 'moderate':
+        pass
     else:
-        print("  - Policy shows low exploration behavior")
-        print("  - Stochastic policy actions are similar to deterministic ones")
+        pass
 
     # Performance check
     det_perf = metrics['deterministic']['mean_return']
     sto_perf = metrics['stochastic']['mean_return']
     perf_diff = sto_perf - det_perf
 
-    print("\nPerformance Analysis:")
     if abs(perf_diff) < 50:  # Within $50, consider similar performance
-        print("  - Both policies show similar performance")
         if metrics['comparison']['exploration_level'] != 'low':
-            print("  - Increased exploration doesn't significantly hurt performance")
+            pass
     elif perf_diff < 0:
-        print("  - Stochastic policy has lower performance")
-        print("  - Increased exploration comes at a performance cost")
+        pass
     else:
-        print("  - Stochastic policy has higher performance")
-        print("  - Increased exploration improves performance")
+        pass
 
     # Save comparison
     save_comparison(metrics, "reports/sac_policy_comparison.json")
 
-    print("\nComparison completed successfully!")
     return 0
 
 
