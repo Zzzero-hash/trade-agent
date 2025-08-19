@@ -13,10 +13,12 @@ and maximizes the validation Sharpe ratio as the objective function.
 """
 
 import argparse
+import contextlib
 import json
 import os
 import pickle
 import sys
+import uuid  # added for temporary file naming used in reward and agent folds
 import warnings
 from datetime import datetime
 from typing import Any
@@ -25,36 +27,35 @@ import numpy as np
 import optuna
 import pandas as pd
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import project modules
+# Import project modules (primary path first, then fallbacks)
 try:
-    from stable_baselines3 import PPO, SAC
+    from stable_baselines3 import PPO, SAC  # type: ignore
 
-    from src.data.splits import purged_walk_forward_splits
-    from src.envs.trading_env import TradingEnvironment
-    from src.eval.backtest import BacktestEngine
-    from src.sl.models.base import set_all_seeds
-    from src.sl.models.factory import SLModelFactory
-    from src.sl.train import SLTrainingPipeline
+    from src.data.splits import purged_walk_forward_splits  # type: ignore
+    from src.envs.trading_env import TradingEnvironment  # type: ignore
+    from src.eval.backtest import BacktestEngine  # type: ignore
+    from src.sl.models.base import set_all_seeds  # type: ignore
+    from src.sl.models.factory import SLModelFactory  # type: ignore
+    from src.sl.train import SLTrainingPipeline  # type: ignore
 except ImportError:
-    # Fallback imports for development environment
     try:
-        from data.splits import purged_walk_forward_splits
-        from envs.trading_env import TradingEnvironment
-        from eval.backtest import BacktestEngine
-        from sl.models.base import set_all_seeds
-        from sl.models.factory import SLModelFactory
-        from sl.train import SLTrainingPipeline
+        from data.splits import purged_walk_forward_splits  # type: ignore
+        from envs.trading_env import TradingEnvironment  # type: ignore
+        from eval.backtest import BacktestEngine  # type: ignore
+        from sl.models.base import set_all_seeds  # type: ignore
+        from sl.models.factory import SLModelFactory  # type: ignore
+        from sl.train import SLTrainingPipeline  # type: ignore
     except ImportError:
-        print("Warning: Could not import required modules. Some functionality may be limited.")
-        purged_walk_forward_splits = None
-        TradingEnvironment = None
-        BacktestEngine = None
-        set_all_seeds = None
-        SLModelFactory = None
-        SLTrainingPipeline = None
+        purged_walk_forward_splits = None  # type: ignore
+        TradingEnvironment = None  # type: ignore
+        BacktestEngine = None  # type: ignore
+        set_all_seeds = None  # type: ignore
+        SLModelFactory = None  # type: ignore
+        SLTrainingPipeline = None  # type: ignore
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
@@ -63,7 +64,7 @@ warnings.filterwarnings("ignore")
 class TimeBlockedCV:
     """Time-blocked cross-validation to prevent data leakage."""
 
-    def __init__(self, n_splits: int = 3, gap: int = 10):
+    def __init__(self, n_splits: int = 3, gap: int = 10) -> None:
         """
         Initialize time-blocked cross-validation.
 
@@ -136,7 +137,7 @@ class TimeBlockedCV:
 class HyperparameterTuner:
     """Hyperparameter tuner for SL models and RL agents."""
 
-    def __init__(self, data_file: str = "data/features.parquet", storage: str | None = None):
+    def __init__(self, data_file: str = "data/features.parquet", storage: str | None = None) -> None:
         """
         Initialize hyperparameter tuner.
 
@@ -327,8 +328,7 @@ class HyperparameterTuner:
                 else:
                     sharpe_ratios.append(0.0)
 
-            except Exception as e:
-                print(f"Error in trial: {e}")
+            except Exception:
                 sharpe_ratios.append(0.0)  # Penalize failed trials
 
         # Return mean Sharpe ratio across folds
@@ -460,10 +460,8 @@ class HyperparameterTuner:
         finally:
             # Clean up temporary config file
             if agent_type in ["ppo", "sac"]:
-                try:
+                with contextlib.suppress(FileNotFoundError):
                     os.unlink(temp_config_name)
-                except FileNotFoundError:
-                    pass
 
         return float(sharpe_ratio)
 
@@ -515,8 +513,7 @@ class HyperparameterTuner:
             sharpe_ratios.append(fold_sharpe)
 
         # Return mean Sharpe ratio across folds
-        sharpe_ratio = float(np.mean(sharpe_ratios)) if sharpe_ratios else 0.0
-        return sharpe_ratio
+        return float(np.mean(sharpe_ratios)) if sharpe_ratios else 0.0
 
     def _train_and_evaluate_reward_fold(self, reward_config: dict,
                                        train_idx: list, val_idx: list) -> float:
@@ -673,7 +670,6 @@ class HyperparameterTuner:
         """
         import json
         import os
-        import tempfile
 
         import numpy as np
         from stable_baselines3 import PPO, SAC
@@ -1053,13 +1049,12 @@ class HyperparameterTuner:
         Returns:
             Dictionary with best parameters and score
         """
-        print(f"Tuning {model_type} model...")
 
         # Log parallel execution configuration
         if self.storage:
-            print(f"Using distributed storage: {self.storage}")
+            pass
         if n_jobs > 1:
-            print(f"Using {n_jobs} parallel jobs")
+            pass
 
         # Select pruner
         if pruner == "median":
@@ -1088,10 +1083,6 @@ class HyperparameterTuner:
             show_progress_bar=True
         )
 
-        print(f"Best {model_type} parameters: {study.best_params}")
-        print(f"Best {model_type} Sharpe ratio: {study.best_value:.4f}")
-        print(f"Number of completed trials: {len(study.trials)}")
-        print(f"Number of pruned trials: {len([t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED])}")
 
         return {
             "best_params": study.best_params,
@@ -1114,13 +1105,12 @@ class HyperparameterTuner:
         Returns:
             Dictionary with best parameters and score
         """
-        print(f"Tuning {agent_type.upper()} agent...")
 
         # Log parallel execution configuration
         if self.storage:
-            print(f"Using distributed storage: {self.storage}")
+            pass
         if n_jobs > 1:
-            print(f"Using {n_jobs} parallel jobs")
+            pass
 
         # Select pruner
         if pruner == "median":
@@ -1149,10 +1139,6 @@ class HyperparameterTuner:
             show_progress_bar=True
         )
 
-        print(f"Best {agent_type.upper()} parameters: {study.best_params}")
-        print(f"Best {agent_type.upper()} Sharpe ratio: {study.best_value:.4f}")
-        print(f"Number of completed trials: {len(study.trials)}")
-        print(f"Number of pruned trials: {len([t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED])}")
 
         return {
             "best_params": study.best_params,
@@ -1174,7 +1160,6 @@ class HyperparameterTuner:
         study_path = f"reports/{study_name}_study.pkl"
         with open(study_path, 'wb') as f:
             pickle.dump(study, f)
-        print(f"Study saved to {study_path}")
         return study_path
 
     def save_best_params(self, best_params: dict[str, Any], model_name: str) -> str:
@@ -1191,7 +1176,6 @@ class HyperparameterTuner:
         params_path = f"reports/{model_name}_best_params.json"
         with open(params_path, 'w') as f:
             json.dump(best_params, f, indent=2)
-        print(f"Best parameters saved to {params_path}")
         return params_path
 
     def tune_reward_params(self, n_trials: int = 50):
@@ -1204,11 +1188,10 @@ class HyperparameterTuner:
         Returns:
             Dictionary with best parameters and score
         """
-        print("Tuning reward function lambda parameters...")
 
         # Log parallel execution configuration
         if self.storage:
-            print(f"Using distributed storage: {self.storage}")
+            pass
 
         # Create study
         study = optuna.create_study(
@@ -1225,8 +1208,6 @@ class HyperparameterTuner:
             show_progress_bar=True
         )
 
-        print(f"Best reward parameters: {study.best_params}")
-        print(f"Best Sharpe ratio: {study.best_value:.4f}")
 
         return {
             "best_params": study.best_params,
@@ -1235,7 +1216,7 @@ class HyperparameterTuner:
         }
 
 
-def main():
+def main() -> int:
     """Main function for hyperparameter tuning."""
     parser = argparse.ArgumentParser(description="Hyperparameter Tuning with Optuna")
     parser.add_argument("--model", choices=["ridge", "mlp", "cnn_lstm", "ppo", "sac", "reward", "all"],
@@ -1257,8 +1238,6 @@ def main():
 
     args = parser.parse_args()
 
-    print("Hyperparameter Tuning Script")
-    print("=" * 50)
 
     # Create tuner
     tuner = HyperparameterTuner(data_file=args.data, storage=args.storage)
@@ -1274,9 +1253,6 @@ def main():
         # Tune all models sequentially
         models = ["ridge", "mlp", "cnn_lstm", "ppo", "sac", "reward"]
         for model in models:
-            print(f"\n{'='*60}")
-            print(f"Tuning {model.upper()} model")
-            print(f"{'='*60}")
             try:
                 if model in ["ridge", "mlp", "cnn_lstm"]:
                     results = tuner.tune_sl_model(model, args.trials, args.timeout, args.n_jobs, args.pruner)
@@ -1287,31 +1263,23 @@ def main():
 
                 # Save results for each model
                 study_name = f"{model}_tuning_{datetime.now().strftime('%Y%m%d_%H%M%S')}" if model != "reward" else f"reward_params_tuning_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                study_path = tuner.save_study(results["study"], study_name)
-                params_path = tuner.save_best_params(results["best_params"], model if model != "reward" else "reward_params")
-                print(f"Study saved to: {study_path}")
-                print(f"Best parameters saved to: {params_path}")
-            except Exception as e:
-                print(f"Error tuning {model}: {e}")
+                tuner.save_study(results["study"], study_name)
+                tuner.save_best_params(results["best_params"], model if model != "reward" else "reward_params")
+            except Exception:
                 continue
-        print("\nAll models tuning completed!")
         return 0
     else:
-        print("Please specify a valid model type with --model")
         return 1
 
     # Save results
     study_name = f"{args.model}_tuning_{datetime.now().strftime('%Y%m%d_%H%M%S')}" if args.model != "reward" else f"reward_params_tuning_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     # Save study
-    study_path = tuner.save_study(results["study"], study_name)
+    tuner.save_study(results["study"], study_name)
 
     # Save best parameters
-    params_path = tuner.save_best_params(results["best_params"], args.model if args.model != "reward" else "reward_params")
+    tuner.save_best_params(results["best_params"], args.model if args.model != "reward" else "reward_params")
 
-    print("\nTuning completed successfully!")
-    print(f"Study saved to: {study_path}")
-    print(f"Best parameters saved to: {params_path}")
 
     return 0
 

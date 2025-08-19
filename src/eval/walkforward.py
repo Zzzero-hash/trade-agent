@@ -1,13 +1,6 @@
-from dataclasses import dataclass
-from typing import Any, cast
+"""Shim module re-exporting new location trade_agent.eval.walkforward."""
 
-import numpy as np
-import pandas as pd
-from scipy.stats import levene, ttest_ind, wilcoxon  # type: ignore
-from statsmodels.tsa.stattools import adfuller  # type: ignore
-from typing_extensions import Protocol
-
-from src.eval.backtest import BacktestEngine
+from trade_agent.eval.walkforward import *  # type: ignore  # noqa: F401,F403
 
 
 class ModelProtocol(Protocol):  # type: ignore
@@ -36,7 +29,7 @@ class WalkForwardConfig:
 class WalkForwardValidator:
     """Implements walk-forward validation with overfitting detection."""
 
-    def __init__(self, config: WalkForwardConfig = WalkForwardConfig()):
+    def __init__(self, config: WalkForwardConfig = WalkForwardConfig()) -> None:
         self.config = config
         self.windows = []
         self.metrics_history = []

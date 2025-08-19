@@ -1,10 +1,10 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Optional
+"""Shim module: backward compatibility for legacy import path `eval.backtest`.
 
-import numpy as np
-import pandas as pd
+Imports all public symbols from `trade_agent.eval.backtest`.
+Will be removed after downstream imports migrate to `trade_agent.eval`.
+"""
+
+from trade_agent.eval.backtest import *  # type: ignore  # noqa: F401,F403
 
 
 class FeeModel(ABC):
@@ -27,7 +27,7 @@ class FeeModel(ABC):
 class FixedFeeModel(FeeModel):
     """Fixed fee per trade model."""
 
-    def __init__(self, fee_amount: float = 1.0):
+    def __init__(self, fee_amount: float = 1.0) -> None:
         """
         Initialize the fixed fee model.
 
@@ -44,7 +44,7 @@ class FixedFeeModel(FeeModel):
 class PercentageFeeModel(FeeModel):
     """Percentage-based fee on trade value."""
 
-    def __init__(self, percentage: float = 0.001):
+    def __init__(self, percentage: float = 0.001) -> None:
         """
         Initialize the percentage fee model.
 
@@ -80,7 +80,7 @@ class SlippageModel(ABC):
 class FixedSlippageModel(SlippageModel):
     """Fixed slippage amount per share."""
 
-    def __init__(self, slippage_per_share: float = 0.01):
+    def __init__(self, slippage_per_share: float = 0.01) -> None:
         """
         Initialize the fixed slippage model.
 
@@ -97,7 +97,7 @@ class FixedSlippageModel(SlippageModel):
 class PercentageSlippageModel(SlippageModel):
     """Percentage-based slippage on entry price."""
 
-    def __init__(self, percentage: float = 0.0005):
+    def __init__(self, percentage: float = 0.0005) -> None:
         """
         Initialize the percentage slippage model.
 
@@ -114,7 +114,7 @@ class PercentageSlippageModel(SlippageModel):
 class MarketImpactSlippageModel(SlippageModel):
     """Market impact based slippage model."""
 
-    def __init__(self, impact_coefficient: float = 0.1):
+    def __init__(self, impact_coefficient: float = 0.1) -> None:
         """
         Initialize the market impact slippage model.
 
@@ -169,7 +169,7 @@ class BacktestEngine:
     including configurable hooks for fees and slippage.
     """
 
-    def __init__(self, initial_capital: float = 100000.0):
+    def __init__(self, initial_capital: float = 100000.0) -> None:
         """
         Initializes the BacktestEngine with a starting capital.
 
@@ -204,7 +204,7 @@ class BacktestEngine:
     def run_backtest(
         self,
         trade_data: list[dict[str, Any]]
-    ):
+    ) -> None:
         """
         Runs the backtest simulation over the provided trade data.
 

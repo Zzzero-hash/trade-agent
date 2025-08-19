@@ -24,34 +24,33 @@ import optuna
 import pandas as pd
 from scipy import stats
 
+
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import project modules
+# Import project modules (primary path first, then fallbacks)
 try:
-    from sl.models.factory import SLModelFactory
-    from sl.train import SLTrainingPipeline
-    from src.data.splits import purged_walk_forward_splits
-    from src.envs.trading_env import TradingEnvironment
-    from src.eval.backtest import BacktestEngine
-    from src.sl.models.base import set_all_seeds
+    from sl.models.factory import SLModelFactory  # type: ignore
+    from sl.train import SLTrainingPipeline  # type: ignore
+    from src.data.splits import purged_walk_forward_splits  # type: ignore
+    from src.envs.trading_env import TradingEnvironment  # type: ignore
+    from src.eval.backtest import BacktestEngine  # type: ignore
+    from src.sl.models.base import set_all_seeds  # type: ignore
 except ImportError:
-    # Fallback imports for development environment
     try:
-        from data.splits import purged_walk_forward_splits
-        from envs.trading_env import TradingEnvironment
-        from eval.backtest import BacktestEngine
-        from sl.models.base import set_all_seeds
-        from sl.models.factory import SLModelFactory
-        from sl.train import SLTrainingPipeline
+        from data.splits import purged_walk_forward_splits  # type: ignore
+        from envs.trading_env import TradingEnvironment  # type: ignore
+        from eval.backtest import BacktestEngine  # type: ignore
+        from sl.models.base import set_all_seeds  # type: ignore
+        from sl.models.factory import SLModelFactory  # type: ignore
+        from sl.train import SLTrainingPipeline  # type: ignore
     except ImportError:
-        print("Warning: Could not import required modules. Some functionality may be limited.")
-        purged_walk_forward_splits = None
-        TradingEnvironment = None
-        BacktestEngine = None
-        set_all_seeds = None
-        SLModelFactory = None
-        SLTrainingPipeline = None
+        purged_walk_forward_splits = None  # type: ignore
+        TradingEnvironment = None  # type: ignore
+        BacktestEngine = None  # type: ignore
+        set_all_seeds = None  # type: ignore
+        SLModelFactory = None  # type: ignore
+        SLTrainingPipeline = None  # type: ignore
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
@@ -60,7 +59,7 @@ warnings.filterwarnings("ignore")
 class TuningValidator:
     """Validates hyperparameter tuning results and tests on untouched data."""
 
-    def __init__(self, data_file: str = "data/features.parquet"):
+    def __init__(self, data_file: str = "data/features.parquet") -> None:
         """Initialize tuning validator."""
         self.data_file = data_file
         self.df = pd.read_parquet(data_file)
@@ -86,8 +85,7 @@ class TuningValidator:
             Loaded Optuna study
         """
         with open(study_path, 'rb') as f:
-            study = pickle.load(f)
-        return study
+            return pickle.load(f)
 
     def analyze_parameter_stability(self, study: optuna.Study, top_k: int = 10) -> dict[str, Any]:
         """
@@ -194,13 +192,12 @@ class TuningValidator:
             return {"unknown_parameter": True}
 
         values_array = np.array(values)
-        extreme_checks = {
+        return {
             "too_low": np.any(values_array < param_range[0]),
             "too_high": np.any(values_array > param_range[1]),
             "out_of_range": np.any((values_array < param_range[0]) | (values_array > param_range[1]))
         }
 
-        return extreme_checks
 
     def _analyze_distribution(self, values: list[float]) -> dict[str, Any]:
         """Analyze the distribution of parameter values."""
@@ -302,16 +299,14 @@ class TuningValidator:
         train_data = self.df.iloc[:split_idx]
         test_data = self.df.iloc[split_idx:]
 
-        print(f"Using {len(test_data)} samples for testing ({test_size*100:.1f}% of data)")
 
         if model_type in ["ridge", "mlp", "cnn_lstm"]:
             return self._test_sl_model(best_params, model_type, train_data, test_data)
-        elif model_type in ["ppo", "sac"]:
+        if model_type in ["ppo", "sac"]:
             return self._test_rl_agent(best_params, model_type, train_data, test_data)
-        elif model_type == "reward":
+        if model_type == "reward":
             return self._test_reward_params(best_params, train_data, test_data)
-        else:
-            return {"error": f"Unsupported model type: {model_type}"}
+        return {"error": f"Unsupported model type: {model_type}"}
 
     def _test_sl_model(self, params: dict[str, Any], model_type: str,
                       train_data: pd.DataFrame, test_data: pd.DataFrame) -> dict[str, Any]:
@@ -361,17 +356,16 @@ class TuningValidator:
                     "train_samples": len(train_data),
                     "best_params": params
                 }
-            else:
-                return {
-                    "test_sharpe_ratio": 0.0,
-                    "test_total_return": 0.0,
-                    "test_volatility": 0.0,
-                    "test_max_drawdown": 0.0,
-                    "test_samples": len(test_data),
-                    "train_samples": len(train_data),
-                    "best_params": params,
-                    "warning": "Insufficient data for meaningful metrics"
-                }
+            return {
+                "test_sharpe_ratio": 0.0,
+                "test_total_return": 0.0,
+                "test_volatility": 0.0,
+                "test_max_drawdown": 0.0,
+                "test_samples": len(test_data),
+                "train_samples": len(train_data),
+                "best_params": params,
+                "warning": "Insufficient data for meaningful metrics"
+            }
 
         except Exception as e:
             return {"error": str(e)}
@@ -657,12 +651,10 @@ class TuningValidator:
 
         if val_best != 0:
             performance_drop = (val_best - test_sharpe) / abs(val_best)
-            comparison = {
+            return {
                 "validation_best": val_best,
                 "test_sharpe": test_sharpe,
                 "performance_drop": performance_drop,
                 "overfitting_flag": performance_drop > 0.3
             }
-            return comparison
-        else:
-            return {"error": "Cannot compare - no validation best value"}
+        return {"error": "Cannot compare - no validation best value"}

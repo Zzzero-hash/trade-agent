@@ -24,23 +24,33 @@ Market Data -> Feature Engineering -> SL Forecasters -> RL Environment -> RL Age
 See the full documentation (diagrams & detailed module descriptions):
 https://zzzzero-hash.github.io/trade-agent/
 
-### Repository Layout
+### Target Repository Layout (refactor in progress)
 
 ```
-├── conf/                # Hydra configuration hierarchy (YAML)
-├── data/                # Sample / cached feature & label data (parquet / csv)
-├── docs/                # Sphinx documentation source (built to GitHub Pages)
-├── models/              # Serialized trained model artifacts + metadata
-├── src/                 # (Pending) Core library/package code (add modules here)
-├── tests/               # Tests (unit / integration) – extend as modules mature
-├── logs/                # Training / evaluation logs (RL + SL)
-├── main.py              # Entry point (e.g., orchestration / CLI placeholder)
-├── run_analysis.py      # Script for exploratory analysis / validation
-├── extract_validation.py# Symbol / data extraction validation utility
-├── pyproject.toml       # Project & dependency metadata
-├── Makefile             # Common dev & docs tasks
-└── README.md            # This file
+trade_agent/
+  __init__.py
+  data/              # loaders, validation, caching interfaces
+  agents/            # SL forecasters, RL policies, env wrappers
+    sl/              # (migrated from src/sl/*)
+    envs/            # trading environments
+    rl/              # future RL algo adapters (PPO, SAC wrappers)
+  training/          # training loops, schedulers, callbacks, experiment registry
+  evaluation/        # backtests, metrics (financial + regression), reporting
+  api/               # FastAPI service (to be added)
+  utils/             # logging, config, random seeds, common helpers
+frontend/            # Next.js app (planned)
+conf/                # Hydra configs
+configs/             # Legacy JSON model configs (deprecated)
+data/                # Sample parquet/csv + registry db
+docs/                # Sphinx source
+models/              # Serialized artifacts / metadata
+tests/               # Unit & integration tests
+scripts/             # CLI scripts & maintenance utilities
+pyproject.toml       # Project configuration & tooling (ruff, mypy, black)
 ```
+
+During migration we maintain backward-compatible shim imports so existing
+`from src.sl...` references continue to work until all callers are updated.
 
 ### Getting Started
 
@@ -67,22 +77,27 @@ Ensure you have the following installed on your system:
     git clone https://github.com/zzzzero-hash/trade-agent.git
     cd trade-agent
     ```
-2.  **Install dependencies using Poetry**:
-    ```bash
-    poetry install
-    ```
-    This command will create a virtual environment and install all project dependencies.
-3.  **Activate the virtual environment**:
-    ```bash
-    poetry shell
-    ```
+2.  **Install dependencies (editable)**:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -e .[dev]
+pre-commit install
+```
+
+(Poetry can still be used if preferred; the project remains `pyproject.toml` driven.)
 
 #### Verification
 
 To ensure your environment is set up correctly, you can run the documentation build and lint steps:
 
 ```bash
-make docs
+pytest -q            # fast test pass
+ruff check .         # lint
+black --check .      # format check
+make docs            # build documentation
 ```
 
 This command will build the Sphinx documentation and perform linting checks. Any warnings will result in a build failure, ensuring documentation quality.
@@ -279,7 +294,7 @@ additional metrics, or integration with experiment trackers (e.g. MLflow).
 
 ### Testing
 
-Add fast unit tests near each subsystem (data, features, sl, rl, ensemble). For stochastic RL components, fix seeds and assert distributional properties / shape / range rather than exact equality.
+Add fast unit tests near each subsystem (data, features, sl, rl, ensemble). For stochastic RL components, fix seeds and assert distributional properties / shape / range rather than exact equality. New modules should include type hints and docstrings; add at least one regression + one edge case test.
 
 ### Extensibility Roadmap (Suggested)
 

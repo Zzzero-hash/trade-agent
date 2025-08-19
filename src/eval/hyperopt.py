@@ -1,12 +1,6 @@
-from typing import Any, Optional
+"""Shim module re-exporting new location trade_agent.eval.hyperopt."""
 
-import numpy as np
-import optuna
-import pandas as pd
-from optuna import Study, Trial
-from scipy.stats import spearmanr
-
-from src.eval.walkforward import WalkForwardConfig, WalkForwardValidator
+from trade_agent.eval.hyperopt import *  # type: ignore  # noqa: F401,F403
 
 
 class RobustHyperparameterOptimizer(Study):
@@ -21,7 +15,7 @@ class RobustHyperparameterOptimizer(Study):
         n_trials: int = 100,
         timeout: Optional[float] = None,
         early_stopping_patience: int = 10
-    ):
+    ) -> None:
         self.data = data
         self.model = model
         self.base_config = base_config
