@@ -1,15 +1,19 @@
+# @package _global_
+
+# Inherit from base model configuration
+defaults:
+  - _base_
+  - override /cv: default # Override with project defaults
+
 model_type: ridge
+
+# Override model_config with ridge-specific parameters
 model_config:
   alpha: 1.0
-  random_state: ${random_state}
-cv_config:
-  n_splits: ${cv.n_splits}
-  gap: ${cv.gap}
 
-# Legacy tuner grid
+# Override tuning_config with ridge-specific parameters
 tuning_config:
   enable_tuning: true
-  scoring_metric: neg_mean_squared_error
   param_grid:
     alpha: [0.1, 1.0, 10.0, 100.0]
   n_trials: 20

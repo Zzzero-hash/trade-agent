@@ -1,0 +1,35 @@
+# Base model configuration template
+# All model configurations should inherit from this template
+
+# Model identification (to be overridden by child configs)
+
+# Random state for reproducibility
+random_state: ${random_state}
+
+# Model-specific configuration
+model_config:
+  # Model-specific parameters should be defined in child configs
+  # Example for neural networks:
+  # input_size: ${input_size}
+  # hidden_sizes: [64, 32, 16]
+  # output_size: 1
+  # dropout: 0.2
+  # learning_rate: 0.001
+  # batch_size: 32
+  # epochs: 10
+
+# Cross-validation configuration
+cv_config:
+  n_splits: ${cv.n_splits}
+  gap: ${cv.gap}
+
+# Hyperparameter tuning configuration
+tuning_config:
+  enable_tuning: false
+  scoring_metric: neg_mean_squared_error
+  param_grid: {}
+  n_trials: 10
+
+# Output configuration
+output_dir: models/
+save_model: true

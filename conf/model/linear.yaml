@@ -1,8 +1,11 @@
-model_type: linear
-model_config: {}
-cv_config:
-  n_splits: ${cv.n_splits}
-  gap: ${cv.gap}
+# @package _global_
 
-tuning_config:
-  enable_tuning: false
+# Inherit from base model configuration
+defaults:
+  - _base_
+  - override /cv: default # Override with project defaults
+
+model_type: linear
+
+# Linear model doesn't need additional model_config parameters
+model_config: {}

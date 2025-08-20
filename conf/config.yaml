@@ -1,7 +1,7 @@
 # Base Hydra config for supervised model training
 
 defaults:
-  - model: ridge # choose model group file in conf/model/
+  - model: ridge
   - _self_
 
 # Data settings

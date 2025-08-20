@@ -1,4 +1,13 @@
+# @package _global_
+
+# Inherit from base model configuration
+defaults:
+  - _base_
+  - override /cv: default # Override with project defaults
+
 model_type: transformer
+
+# Override model_config with transformer-specific parameters
 model_config:
   input_size: 17
   d_model: 256
@@ -13,14 +22,10 @@ model_config:
   batch_size: 32
   learning_rate: 0.001
   weight_decay: 0.00001
-  random_state: ${random_state}
-cv_config:
-  n_splits: 3
-  gap: 10
 
+# Override tuning_config with transformer-specific parameters
 tuning_config:
   enable_tuning: false
-  scoring_metric: neg_mean_squared_error
   param_grid:
     d_model: [32, 64]
     nhead: [4, 8]

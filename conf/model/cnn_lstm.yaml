@@ -1,4 +1,13 @@
+# @package _global_
+
+# Inherit from base model configuration
+defaults:
+  - _base_
+  - override /cv: default # Override with project defaults
+
 model_type: cnn_lstm
+
+# Override model_config with CNN-LSTM-specific parameters
 model_config:
   input_size: 17
   cnn_channels: [64, 128]
@@ -12,14 +21,10 @@ model_config:
   batch_size: 32
   learning_rate: 0.001
   weight_decay: 0.00001
-  random_state: ${random_state}
-cv_config:
-  n_splits: 3
-  gap: 10
 
+# Override tuning_config with CNN-LSTM-specific parameters
 tuning_config:
   enable_tuning: false
-  scoring_metric: neg_mean_squared_error
   param_grid:
     lstm_hidden_size: [32, 64]
     lstm_num_layers: [1, 2]

@@ -139,7 +139,7 @@ Sample parquet / csv files are included under `data/` for experimentation. In pr
 
 ### Supervised Models
 
-Models are configured via YAML in `conf/model/` using Hydra and saved to `models/` with complete configuration snapshots. See [LEGACY_CLEANUP.md](LEGACY_CLEANUP.md) for migrating from JSON configs. Extend training scripts to add new model families (tree-based, transformers, probabilistic, etc.).
+Models are configured via YAML in `conf/model/` using Hydra and saved to `models/` with complete configuration snapshots. Extend training scripts to add new model families (tree-based, transformers, probabilistic, etc.).
 
 ### Reinforcement Learning
 
@@ -287,7 +287,6 @@ Published automatically to GitHub Pages via CI (multi-version enabled if branche
 > **Warning**
 > **Legacy Configuration Deprecation Notice**
 > JSON configs in `configs/` are being phased out in favor of Hydra YAML configurations.
-> See [LEGACY_CLEANUP.md](LEGACY_CLEANUP.md) for migration details and timeline.
 
 Central configs are moving to YAML under `conf/`. Favor explicit, version-controlled configuration objects for reproducibility using Hydra's compositional patterns.
 

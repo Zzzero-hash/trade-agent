@@ -1,16 +1,21 @@
+# @package _global_
+
+# Inherit from base model configuration
+defaults:
+  - _base_
+  - override /cv: default # Override with project defaults
+
 model_type: garch
+
+# Override model_config with GARCH-specific parameters
 model_config:
   omega: 0.01
   alpha: 0.1
   beta: 0.8
-  random_state: ${random_state}
-cv_config:
-  n_splits: ${cv.n_splits}
-  gap: ${cv.gap}
 
+# Override tuning_config with GARCH-specific parameters
 tuning_config:
   enable_tuning: true
-  scoring_metric: neg_mean_squared_error
   param_grid:
     omega: [0.001, 0.01, 0.1]
     alpha: [0.05, 0.1, 0.15]
