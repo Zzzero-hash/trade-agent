@@ -59,3 +59,8 @@ TARGET ?= close
 
 train-hydra:  ## Run a Hydra-configured SL training (override with `make train-hydra MODEL=ridge DATA=... TARGET=...`)
 	python scripts/train_sl_hydra.py model=$(MODEL) train.data_path=$(DATA) train.target=$(TARGET)
+
+.PHONY: mlflow-ui
+mlflow-ui: ## Launch MLflow tracking UI (port 5000)
+	@command -v mlflow >/dev/null 2>&1 || { echo 'Install mlflow (pip install mlflow)'; exit 1; }
+	mlflow ui --backend-store-uri mlruns --host 0.0.0.0 --port 5000

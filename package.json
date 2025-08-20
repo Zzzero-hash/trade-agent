@@ -1,0 +1,20 @@
+{
+  "name": "trade-agent-release-meta",
+  "private": true,
+  "version": "0.0.0-development",
+  "description": "Release metadata tooling for trade-agent (semantic-release)",
+  "license": "MIT",
+  "devDependencies": {
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
+    "semantic-release": "^23.0.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^10.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.0",
+    "@semantic-release/release-notes-generator": "^14.0.1"
+  },
+  "scripts": {
+    "release": "semantic-release"
+  }
+}

@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 import torch
 import torch.nn as nn
+from numpy.typing import NDArray
 
 from .base import Agent
 
@@ -42,7 +43,9 @@ class HybridPolicyAgent(Agent):
         self.lr = float(config.get("lr", 1e-3))
         self.sl_head = _MLP(input_dim, hidden_dim)
         self.actor = nn.Linear(input_dim, 1)
-        params = list(self.sl_head.parameters()) + list(self.actor.parameters())
+        params = (
+            list(self.sl_head.parameters()) + list(self.actor.parameters())
+        )
         self.optim = torch.optim.Adam(params, lr=self.lr)
         self.trained = False
 
@@ -59,10 +62,10 @@ class HybridPolicyAgent(Agent):
         self.optim.step()
         self.trained = True
 
-    def _flatten_obs(self, obs: np.ndarray) -> torch.Tensor:
+    def _flatten_obs(self, obs: NDArray[np.float_]) -> torch.Tensor:
         return torch.from_numpy(obs.reshape(1, -1).astype(np.float32))
 
-    def predict(self, obs: np.ndarray) -> np.ndarray:
+    def predict(self, obs: NDArray[np.float_]) -> NDArray[np.float_]:
         if not self.trained:
             raise RuntimeError("Model not trained")
         with torch.no_grad():
@@ -73,7 +76,9 @@ class HybridPolicyAgent(Agent):
                 .numpy()
                 .ravel()
             )
-        return np.clip(action, self.action_space.low, self.action_space.high)
+        return np.clip(
+            action, self.action_space.low, self.action_space.high
+        )
 
     def save(self, path: str) -> None:
         torch.save(
@@ -87,6 +92,10 @@ class HybridPolicyAgent(Agent):
 
     def load(self, path: str) -> None:
         state = torch.load(path, map_location="cpu")
-        self.sl_head.load_state_dict(state["sl_head"])  # type: ignore[arg-type]
-        self.actor.load_state_dict(state["actor"])  # type: ignore[arg-type]
+        self.sl_head.load_state_dict(  # type: ignore[arg-type]
+            state["sl_head"]
+        )
+        self.actor.load_state_dict(  # type: ignore[arg-type]
+            state["actor"]
+        )
         self.trained = True

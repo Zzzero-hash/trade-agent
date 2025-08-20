@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 from gymnasium import spaces
+from numpy.typing import NDArray
 from stable_baselines3 import SAC  # type: ignore
 from stable_baselines3.common.callbacks import (  # type: ignore
     EvalCallback,
@@ -115,11 +116,13 @@ class SACAgent(Agent):
             log_interval=50,
         )
 
-    def predict(self, obs: np.ndarray) -> np.ndarray:
+    def predict(self, obs: NDArray[np.float_]) -> NDArray[np.float_]:
         if self.model is None:  # pragma: no cover
             raise RuntimeError("Model not trained")
-        action, _ = self.model.predict(obs, deterministic=True)  # type: ignore[attr-defined]
-        return action
+        action, _ = self.model.predict(  # type: ignore[attr-defined]
+            obs, deterministic=True
+        )
+        return action  # type: ignore[return-value]
 
     def save(self, path: str) -> None:
         if self.model is None:  # pragma: no cover

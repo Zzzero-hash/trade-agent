@@ -15,7 +15,7 @@ from trade_agent.data.validate import validate_timeseries
 @pytest.fixture()
 def csv_dir(tmp_path: Path) -> Path:
     ts = pd.date_range(
-        datetime.now(tz=UTC) - timedelta(days=2), periods=48, freq="H"
+        datetime.now(tz=UTC) - timedelta(days=2), periods=48, freq="h"
     )
     df = pd.DataFrame(
         {
@@ -70,7 +70,7 @@ def test_cache_roundtrip(csv_dir: Path, tmp_path: Path) -> None:
 
 def test_validation_nan_ratio(tmp_path: Path) -> None:
     idx = pd.date_range(
-        datetime(2024, 1, 1, tzinfo=UTC), periods=10, freq="H"
+        datetime(2024, 1, 1, tzinfo=UTC), periods=10, freq="h"
     )
     df = pd.DataFrame({
         "open": 1.0,

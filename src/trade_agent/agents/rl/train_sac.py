@@ -1,18 +1,8 @@
 #!/usr/bin/env python3
-"""
-SAC Training Script for Trading Environment
+from __future__ import annotations
 
-This script implements SAC training with the following features:
-1. VecEnv with SubprocVecEnv for parallel environment execution
-2. Fixed seeds for reproducibility
-3. TradingEnvironment from src/envs/trading_env.py
-4. Hyperparameters loaded from configs/sac_config.json
-5. EvalCallback with validation slice that saves best model
-   to models/rl/sac.zip
-6. CLI flag configuration for key parameters
-7. Learning curves plotting to reports/sac_learning.png
-8. Detailed documentation of hyperparameters and rationale
-"""
+
+"""Clean SAC training script (recovered after corruption)."""
 
 import argparse
 import json
@@ -25,15 +15,23 @@ import numpy as np
 import pandas as pd
 from stable_baselines3 import SAC
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
+from stable_baselines3.common.vec_env import (
+    DummyVecEnv,
+    SubprocVecEnv,
+    VecNormalize,
+)
 
 
-# Add the project root to the Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__)))))
-
-from trade_agent.agents.envs.trading_env import TradingEnvironment  # noqa: E402
-from trade_agent.agents.sl.models.base import set_all_seeds  # noqa: E402
+sys.path.insert(
+    0,
+    os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))
+        )
+    ),
+)
+from trade_agent.envs.trading_env import TradingEnvironment  # noqa: E402
+from trade_agent.utils import set_seed  # noqa: E402
 
 
 class EntropyCoefficientCallback(BaseCallback):
@@ -64,118 +62,94 @@ class EntropyCoefficientCallback(BaseCallback):
 
 
 class SACTrainer:
-    """SAC Trainer for Trading Environment with comprehensive features."""
+    """SAC trainer with deterministic seeding support."""
 
-    def __init__(self, config_path: str = "configs/sac_config.json") -> None:
-        """
-        Initialize SAC Trainer.
-
-        Args:
-            config_path: Path to SAC configuration file
-        """
-        # Load configuration
-        with open(config_path) as f:
-            self.config = json.load(f)
-
-        # Extract SAC hyperparameters
+    def __init__(
+        self,
+        config_path: str | None = "configs/sac_config.json",
+        *,
+        config: dict[str, Any] | None = None,
+    ) -> None:
+        if config is not None:
+            self.config = config
+        else:
+            if config_path is None:
+                raise ValueError(
+                    "config_path required when config not provided"
+                )
+            with open(config_path) as f:
+                self.config = json.load(f)
         self.sac_config = self.config.get('sac', {})
         self.training_config = self.config.get('training', {})
-
-        # Set seeds for reproducibility
-        self.seed = self.sac_config.get('seed', 42)
-        set_all_seeds(self.seed)
-
-        # Create models directory if it doesn't exist
+        self.seed = int(self.sac_config.get('seed', 42))
+        self.deterministic = bool(self.sac_config.get('deterministic', True))
+        set_seed(self.seed, deterministic=self.deterministic)
         os.makedirs("models/rl", exist_ok=True)
         os.makedirs("reports", exist_ok=True)
 
     def create_envs(
-            self,
-            data_file: str,
-            n_envs: int = 4,
-            initial_capital: float = 100000.0,
-            transaction_cost: float = 0.001,
-            window_size: int = 30,
-            validation_split: float = 0.2
+        self,
+        data_file: str,
+        n_envs: int = 4,
+        initial_capital: float = 100_000.0,
+        transaction_cost: float = 0.001,
+        window_size: int = 30,
+        validation_split: float = 0.2,
     ) -> tuple[Any, Any, pd.DataFrame, pd.DataFrame]:
-        """
-        Create training and validation environments with data splitting.
-
-        Args:
-            data_file: Path to features data file
-            n_envs: Number of parallel environments
-            initial_capital: Starting capital for portfolio
-            transaction_cost: Transaction cost per trade
-            window_size: Feature window size
-            validation_split: Proportion of data to use for validation
-
-        Returns:
-            Tuple of (train_env, eval_env, train_data, val_data)
-        """
-        # Load data
         df = pd.read_parquet(data_file)
-
-        # Split data into train and validation sets
         split_index = int(len(df) * (1 - validation_split))
         train_data = df.iloc[:split_index]
         val_data = df.iloc[split_index:]
+        train_path = "data/train_temp.parquet"
+        val_path = "data/val_temp.parquet"
+        train_data.to_parquet(train_path)
+        val_data.to_parquet(val_path)
 
-
-        # Save temporary files for environments
-        train_file = "data/train_temp.parquet"
-        val_file = "data/val_temp.parquet"
-        train_data.to_parquet(train_file)
-        val_data.to_parquet(val_file)
-
-        # Environment creation function with different seeds
-        def make_env(rank: int, seed: int = 0):
-            def _init():
+        def make_env(rank: int, base_seed: int) -> Any:
+            def _init() -> TradingEnvironment:
                 return TradingEnvironment(
-                    data_file=train_file,
+                    data_file=train_path,
                     initial_capital=initial_capital,
                     transaction_cost=transaction_cost,
-                    seed=seed + rank,
-                    window_size=window_size
+                    seed=base_seed + rank,
+                    window_size=window_size,
                 )
             return _init
 
-        # Create vectorized environments
-        train_env = SubprocVecEnv([
-            make_env(i, self.seed) for i in range(n_envs)
-        ])
-
-        # Apply VecNormalize to training environment for reward scaling
-        reward_scaling_config = self.sac_config.get('reward_scaling', {})
-        reward_clip = reward_scaling_config.get('clip_range', 10.0)
-
+        train_env = SubprocVecEnv(
+            [make_env(i, self.seed) for i in range(n_envs)]
+        )
+        set_seed(self.seed, env=train_env, deterministic=self.deterministic)
+        reward_cfg = self.sac_config.get('reward_scaling', {})
+        clip_r = reward_cfg.get('clip_range', 10.0)
         train_env = VecNormalize(
             train_env,
-            norm_obs=False,  # Not normalizing observations
-            norm_reward=True,  # Normalize rewards
-            clip_reward=reward_clip
+            norm_obs=False,
+            norm_reward=True,
+            clip_reward=clip_r,
         )
 
-        # Create vectorized evaluation environment
-        def make_eval_env():
+        def make_eval_env() -> TradingEnvironment:
             return TradingEnvironment(
-                data_file=val_file,
+                data_file=val_path,
                 initial_capital=initial_capital,
                 transaction_cost=transaction_cost,
-                seed=self.seed + 1000,  # Different seed for evaluation
-                window_size=window_size
+                seed=self.seed + 1000,
+                window_size=window_size,
             )
 
         eval_env = DummyVecEnv([make_eval_env])
-
-        # Apply VecNormalize to evaluation environment but disable
-        # reward normalization during evaluation
+        set_seed(
+            self.seed + 1000,
+            env=eval_env,
+            deterministic=self.deterministic,
+        )
         eval_env = VecNormalize(
             eval_env,
-            norm_obs=False,  # Not normalizing observations
-            norm_reward=False,  # Disable reward normalization for evaluation
-            training=False  # Set to evaluation mode
+            norm_obs=False,
+            norm_reward=False,
+            training=False,
         )
-
         return train_env, eval_env, train_data, val_data
 
     def setup_model(self, env: Any) -> SAC:
@@ -219,7 +193,8 @@ class SACTrainer:
             target_entropy=target_entropy,
             seed=self.seed,
             verbose=1,
-            tensorboard_log="./logs/sac/"
+            tensorboard_log="./logs/sac/",
+            device=self.sac_config.get('device', 'cpu')
         )
 
 
@@ -408,12 +383,23 @@ def main() -> None:
                         help="Transaction cost per trade")
     parser.add_argument("--window", type=int, default=30,
                         help="Feature window size")
+    parser.add_argument("--no-deterministic", action="store_true",
+                        help="Disable deterministic PyTorch/cuDNN settings")
 
     args = parser.parse_args()
 
     try:
         # Create trainer
-        trainer = SACTrainer(args.config)
+        config_override = None
+        if args.no_deterministic:
+            try:
+                with open(args.config) as f:
+                    import json as _json
+                    config_override = _json.load(f)
+                config_override.setdefault('sac', {})['deterministic'] = False
+            except Exception:
+                config_override = None
+        trainer = SACTrainer(args.config, config=config_override)
 
         # Train model
         _ = trainer.train(

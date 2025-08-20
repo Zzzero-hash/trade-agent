@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
 
-from trade_agent.agents.envs.trading_env import TradingEnvironment  # noqa: E402
 from trade_agent.agents.sl.models.base import set_all_seeds  # noqa: E402
+from trade_agent.envs.trading_env import TradingEnvironment  # noqa: E402
 
 
 def load_ppo_model(model_path: str) -> PPO:

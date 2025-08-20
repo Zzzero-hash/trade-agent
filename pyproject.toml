@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trade-agent"
-version = "0.3.0"
+dynamic = ["version"]
 authors = [
   { name="Trading RL Platform Team", email="contact@trading-rl-platform.org" },
 ]
@@ -102,7 +102,36 @@ dependencies = [
     # API service layer
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.30.0",
+    # Experiment tracking
+    "mlflow>=2.0.0",
 ]
+
+# Expose extras for development (install with: pip install -e .[dev])
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "mypy",
+    "ruff",
+    "black",
+    "isort",
+    "pre-commit",
+]
+
+[project.entry-points."trade_agent.data_collectors"]
+memory = "trade_agent.plugins.builtins:simple_memory_collector"
+
+[project.entry-points."trade_agent.rl_agents"]
+hybrid = "trade_agent.plugins.builtins:make_hybrid_agent"
+
+[project.entry-points."trade_agent.brokers"]
+in_memory = "trade_agent.plugins.builtins:InMemoryBroker"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["trade_agent*"]
+namespaces = false
 
 [tool.black]
 line-length = 88

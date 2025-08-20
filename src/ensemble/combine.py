@@ -46,7 +46,7 @@ except ImportError:
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from trade_agent.agents.envs.trading_env import TradingEnvironment
+    from trade_agent.envs.trading_env import TradingEnvironment
 except ImportError:
     TradingEnvironment = None
 

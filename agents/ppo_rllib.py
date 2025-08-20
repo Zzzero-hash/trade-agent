@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 
-from agents.base import Agent
+from trade_agent.agents.base import Agent
 
 
 class PPOAgent(Agent):

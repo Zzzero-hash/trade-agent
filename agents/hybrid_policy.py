@@ -15,7 +15,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from agents.base import Agent
+from trade_agent.agents.base import Agent
 
 
 class _MLP(nn.Module):

@@ -1,3 +1,0 @@
-- model=ridge
-- train.data_path=data/sample_data.csv
-- train.target=close

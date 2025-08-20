@@ -20,10 +20,10 @@ from optuna.samplers import TPESampler
 
 
 try:
-    from trade_agent.agents.envs.trading_env import TradingEnvironment
     from trade_agent.agents.sl.models.base import set_all_seeds
     from trade_agent.agents.sl.models.factory import SLModelFactory
     from trade_agent.data.splits import purged_walk_forward_splits
+    from trade_agent.envs.trading_env import TradingEnvironment
 except ImportError as e:
     warnings.warn(f"Import error: {e}. Some functionality may be limited.", stacklevel=2)
 

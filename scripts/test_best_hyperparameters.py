@@ -31,8 +31,8 @@ from stable_baselines3.common.callbacks import EvalCallback
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.eval.backtest import BacktestEngine, ReportGenerator, StressTester
-from trade_agent.agents.envs.trading_env import TradingEnvironment
 from trade_agent.agents.sl.models.base import set_all_seeds
+from trade_agent.envs.trading_env import TradingEnvironment
 
 
 # Suppress warnings for cleaner output

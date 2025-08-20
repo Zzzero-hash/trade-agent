@@ -1,0 +1,7 @@
+# Feature network / embedding configuration
+
+mlp_features:
+  input_dim: 514
+  hidden_layers: [256, 128, 64]
+  output_dim: 64
+  activation: ReLU

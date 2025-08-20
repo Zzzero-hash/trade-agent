@@ -36,7 +36,7 @@ try:
     from stable_baselines3 import PPO, SAC  # type: ignore
 
     from src.eval.backtest import BacktestEngine  # type: ignore
-    from trade_agent.agents.envs.trading_env import TradingEnvironment  # type: ignore
+    from trade_agent.envs.trading_env import TradingEnvironment  # type: ignore
     from trade_agent.agents.sl.models.base import set_all_seeds  # type: ignore
     from trade_agent.agents.sl.models.factory import SLModelFactory  # type: ignore
     from trade_agent.agents.sl.train import SLTrainingPipeline  # type: ignore
@@ -45,7 +45,7 @@ except ImportError:
     try:
         from eval.backtest import BacktestEngine  # type: ignore
 
-        from trade_agent.agents.envs.trading_env import (
+    from trade_agent.envs.trading_env import (
             TradingEnvironment,  # type: ignore
         )
         from trade_agent.agents.sl.models.base import set_all_seeds  # type: ignore

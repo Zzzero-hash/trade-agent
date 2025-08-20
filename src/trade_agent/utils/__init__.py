@@ -1,4 +1,10 @@
 """Utility shim package.
-Currently empty; placeholder for future consolidated helpers.
+
+Exports consolidated helpers used across the project.
 """
-__all__: list[str] = []
+from .seed import set_seed  # noqa: F401
+
+
+__all__: list[str] = [
+    "set_seed",
+]

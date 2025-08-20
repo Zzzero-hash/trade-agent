@@ -20,7 +20,7 @@ from stable_baselines3.common.callbacks import (
     StopTrainingOnNoModelImprovement,
 )
 
-from agents.base import Agent
+from trade_agent.agents.base import Agent
 
 
 class SACAgent(Agent):

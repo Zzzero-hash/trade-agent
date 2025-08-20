@@ -113,4 +113,12 @@ pattern_comparison.png
 dist/
 
 # keep workspace settings out
+.env
 .env.example
+
+# mlruns
+mlruns/
+
+# ML experiment outputs and runs
+outputs/
+experiments/

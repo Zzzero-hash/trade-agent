@@ -329,7 +329,7 @@ class TrainingOrchestrator:
                     EnhancedTradingEnvironment as TradingEnvironment,
                 )
             else:
-                from trade_agent.agents.envs.trading_env import TradingEnvironment
+                from trade_agent.envs.trading_env import TradingEnvironment
             import tempfile
 
             from trade_agent.agents.sl.models.base import set_all_seeds

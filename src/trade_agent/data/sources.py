@@ -32,7 +32,7 @@ class OandaSourceAdapter:
 
 	def fetch(self, symbol: str, start: datetime, end: datetime) -> pd.DataFrame:
 		# Generate synthetic hourly bars until end (exclusive)
-		idx = pd.date_range(start, end, inclusive="left", tz=UTC, freq="H")
+		idx = pd.date_range(start, end, inclusive="left", tz=UTC, freq="h")
 		# Previously raised to simulate transient failures. Tests expect success,
 		# so we simply decrement the counter to record the simulated failure.
 		if self.simulated_failures > 0:

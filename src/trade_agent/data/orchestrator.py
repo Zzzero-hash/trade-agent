@@ -2,7 +2,6 @@
 Data pipeline orchestrator for end-to-end data processing execution.
 """
 
-import logging
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -13,11 +12,6 @@ import pandas as pd
 
 from .config import DataPipelineConfig
 from .registry import DataRegistry
-
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class DataOrchestrator:
@@ -31,12 +25,11 @@ class DataOrchestrator:
         self.run_id = None
         self.results = {}
 
-        # Set up logging
-        logger.setLevel(getattr(logging, config.log_level.upper()))
+    # Legacy logging removed; silent operation retained.
 
     def run_full_pipeline(self) -> dict[str, Any]:
         """Execute the complete data pipeline."""
-        logger.info(f"Starting data pipeline: {self.config.pipeline_name}")
+    # (logging removed)
 
         try:
             # Register pipeline run
@@ -54,7 +47,9 @@ class DataOrchestrator:
             self.results['cleaning'] = cleaning_results
 
             if self.config.feature_config.enabled:
-                feature_results = self._run_feature_engineering(cleaning_results)
+                feature_results = self._run_feature_engineering(
+                    cleaning_results
+                )
                 self.results['features'] = feature_results
             else:
                 feature_results = cleaning_results
@@ -68,26 +63,31 @@ class DataOrchestrator:
 
             # Mark as completed
             self.registry.update_run_status(self.run_id, 'completed')
-            logger.info(f"Pipeline completed successfully: {self.run_id}")
+            # (logging removed)
 
             return self.results
 
-        except Exception as e:
+        except Exception as e:  # noqa: PERF203 (single except acceptable)
             error_msg = str(e)
-            logger.error(f"Pipeline failed: {error_msg}")
+            # (logging removed)
             if self.run_id:
                 self.registry.update_run_status(self.run_id, 'failed', error_msg)
             raise
 
     def _run_data_ingestion(self) -> dict[str, Any]:
         """Execute data ingestion stage."""
-        logger.info("Running data ingestion...")
+    # (logging removed)
 
         ingestion_results = {}
 
-        if self.config.parallel_processing and len(self.config.data_sources) > 1:
+        if (
+            self.config.parallel_processing
+            and len(self.config.data_sources) > 1
+        ):
             # Parallel ingestion
-            with ThreadPoolExecutor(max_workers=self.config.n_workers) as executor:
+            with ThreadPoolExecutor(
+                max_workers=self.config.n_workers
+            ) as executor:
                 future_to_source = {
                     executor.submit(self._ingest_single_source, source): source
                     for source in self.config.data_sources
@@ -98,8 +98,7 @@ class DataOrchestrator:
                     try:
                         result = future.result()
                         ingestion_results[source.name] = result
-                    except Exception as e:
-                        logger.error(f"Failed to ingest {source.name}: {e}")
+                    except Exception:
                         raise
         else:
             # Sequential ingestion
@@ -118,7 +117,7 @@ class DataOrchestrator:
 
     def _ingest_single_source(self, source) -> dict[str, Any]:
         """Ingest data from a single source."""
-        logger.info(f"Ingesting data from {source.name} ({source.type})")
+    # (logging removed)
 
         try:
             if source.type == 'yahoo_finance':
@@ -154,13 +153,20 @@ class DataOrchestrator:
                 'records': len(data),
                 'columns': list(data.columns),
                 'date_range': {
-                    'start': str(data.index.min()) if hasattr(data.index, 'min') else None,
-                    'end': str(data.index.max()) if hasattr(data.index, 'max') else None
-                }
+                    'start': (
+                        str(data.index.min())
+                        if hasattr(data.index, 'min')
+                        else None
+                    ),
+                    'end': (
+                        str(data.index.max())
+                        if hasattr(data.index, 'max')
+                        else None
+                    ),
+                },
             }
 
-        except Exception as e:
-            logger.error(f"Failed to ingest {source.name}: {e}")
+        except Exception:
             raise
 
     def _ingest_yahoo_finance(self, source) -> pd.DataFrame:
@@ -168,7 +174,9 @@ class DataOrchestrator:
         try:
             import yfinance as yf
         except ImportError:
-            raise ImportError("yfinance package required for Yahoo Finance data")
+            raise ImportError(
+                "yfinance package required for Yahoo Finance data"
+            )
 
         data_frames = []
         for symbol in source.symbols:
@@ -252,7 +260,7 @@ class DataOrchestrator:
         if not self.config.validation_config.enabled:
             return {}
 
-        logger.info("Running data validation...")
+    # (logging removed)
         validation_results = {}
 
         for source_name, source_result in ingestion_results.items():
@@ -351,7 +359,7 @@ class DataOrchestrator:
         if not self.config.cleaning_config.enabled:
             return ingestion_results
 
-        logger.info("Running data cleaning...")
+    # (logging removed)
         cleaning_results = {}
 
         for source_name, source_result in ingestion_results.items():
@@ -375,7 +383,7 @@ class DataOrchestrator:
 
     def _clean_single_dataset(self, data: pd.DataFrame) -> pd.DataFrame:
         """Clean a single dataset."""
-        logger.info(f"Cleaning dataset with {len(data)} records")
+    # (logging removed)
 
         # Handle duplicates
         if self.config.cleaning_config.handle_duplicates == 'drop':
@@ -413,14 +421,14 @@ class DataOrchestrator:
                         data.index = data.index.tz_localize(self.config.cleaning_config.timezone)
                     else:
                         data.index = data.index.tz_convert(self.config.cleaning_config.timezone)
-                except Exception as e:
-                    logger.warning(f"Failed to normalize timestamps: {e}")
+                except Exception:
+                    pass
 
         return data
 
     def _run_feature_engineering(self, cleaning_results: dict[str, Any]) -> dict[str, Any]:
         """Execute feature engineering stage."""
-        logger.info("Running feature engineering...")
+    # (logging removed)
 
         # Import the existing feature engineering module
         try:
@@ -429,7 +437,7 @@ class DataOrchestrator:
                 compute_technical_indicators,
             )
         except ImportError:
-            logger.warning("Feature engineering module not available, using basic features")
+            pass
             return cleaning_results
 
         feature_results = {}
@@ -467,7 +475,7 @@ class DataOrchestrator:
 
     def _run_data_storage(self, processing_results: dict[str, Any]) -> dict[str, Any]:
         """Execute data storage stage."""
-        logger.info("Running data storage...")
+    # (logging removed)
 
         storage_results = {}
         output_dir = Path(self.config.storage_config.processed_data_dir)
@@ -506,7 +514,7 @@ class DataOrchestrator:
 
     def _run_quality_monitoring(self, processing_results: dict[str, Any]) -> dict[str, Any]:
         """Execute quality monitoring stage."""
-        logger.info("Running quality monitoring...")
+    # (logging removed)
 
         quality_results = {}
 

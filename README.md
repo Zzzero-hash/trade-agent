@@ -8,6 +8,7 @@ Modular research and experimentation framework for building, training, evaluatin
 - Supervised learning forecasters (linear, ridge, GARCH, MLP, CNN+LSTM, transformer, etc.)
 - Gymnasium-compatible trading environments with reward, transaction costs, and risk management
 - RL agents (PPO via Stable-Baselines3, SAC via Ray RLlib) with configurable hyperparameters
+- Unified deterministic seeding utility covering Python/NumPy/PyTorch/Gym (reproducible runs)
 - Ensemble combiner to merge agent actions with weighting & governors
 - Evaluation / backtesting hooks (extensible)
 - Sphinx documentation (multi-version) published to GitHub Pages
@@ -148,6 +149,122 @@ Two RL approaches co-exist:
 - SAC (Ray RLlib) – off-policy, continuous action robustness
 
 Both consume observations composed of engineered features + SL outputs, and output target position adjustments (normalized in [-1, 1] or similar domain-specific scaling).
+
+#### Hydra-based RL Configuration (PPO & SAC)
+
+RL algorithms now use Hydra configs under `conf/rl/`:
+
+````
+conf/rl/config.yaml          # root defaults (algo, features, training, env)
+conf/rl/algo/ppo.yaml        # PPO hyperparameters
+conf/rl/algo/sac.yaml        # SAC hyperparameters
+conf/rl/algo/sac_optuna.yaml # SAC Optuna sweep search space include
+conf/rl/rl_optuna.yaml       # PPO (generic) Optuna sweep config
+conf/rl/features/mlp.yaml    # Feature network definition
+conf/rl/training/default.yaml
+
+##### Deterministic Seeding
+
+All training scripts and Hydra RL configs support a `deterministic` flag (default: true) inside the `ppo` / `sac` sections. The unified helper `trade_agent.utils.set_seed` applies seeds to:
+
+- Python `random`
+- NumPy
+- PyTorch (CPU & CUDA, with optional deterministic algorithms)
+- Gymnasium / Stable-Baselines3 vector environments (including spaces)
+
+Disable deterministic guards (for speed) via CLI:
+
+```bash
+python src/trade_agent/agents/rl/train_ppo.py --no-deterministic
+````
+
+Or Hydra override (if you surface `deterministic` in your composed config):
+
+```bash
+python scripts/train_rl_hydra.py algo=ppo algo.ppo.deterministic=false
+```
+
+Tests under `tests/test_seed_*.py` verify reproducibility of NumPy/Torch draws and initial observations (including VecEnvs).
+
+````
+
+Single PPO run:
+
+```bash
+python scripts/train_rl_hydra.py algo=ppo training.total_timesteps=50000 \
+  env.data_path=data/features.parquet
+````
+
+Single SAC run:
+
+```bash
+python scripts/train_rl_hydra.py algo=sac training.total_timesteps=50000 \
+  env.data_path=data/features.parquet
+```
+
+Optuna sweep (PPO):
+
+```bash
+python scripts/train_rl_hydra.py -m hydra/sweeper=optuna rl_optuna \
+  ppo.learning_rate=loguniform(1e-5,1e-3) ppo.batch_size=choice(32,64,128)
+```
+
+Optuna sweep (SAC):
+
+```bash
+python scripts/train_rl_hydra.py -m hydra/sweeper=optuna algo=sac algo/sac_optuna
+```
+
+Legacy JSON RL configs in `configs/` are deprecated and will be removed after validation.
+
+### Plugin System (Extensibility)
+
+`trade-agent` supports dynamic extension through Python entry points so that
+new data collectors, RL agent factories, and broker adapters can be added
+without modifying core source files.
+
+Entry point groups:
+
+```
+trade_agent.data_collectors  # sources that yield market / feature data
+trade_agent.rl_agents        # callables returning Agent instances
+trade_agent.brokers          # broker / execution adapters
+```
+
+Register a plugin by adding to your own package's `pyproject.toml`:
+
+```toml
+[project.entry-points."trade_agent.rl_agents"]
+my_custom_ppo = "my_pkg.rl:make_custom_ppo"
+```
+
+Where `my_pkg/rl.py` exposes:
+
+```python
+from trade_agent.agents.base import Agent
+
+def make_custom_ppo(config: dict) -> Agent:
+  # construct and return a PPO-compatible Agent
+  ...
+```
+
+Discover at runtime:
+
+```python
+from trade_agent.plugins import iter_rl_agent_factories
+
+for name, factory in iter_rl_agent_factories():
+  agent = factory({"seed": 42})
+```
+
+Faulty plugins are skipped gracefully. This keeps the core lightweight while
+allowing private / proprietary strategy components to live in separate repos.
+
+Built-in reference plugins shipped:
+
+- `memory` data collector (tiny in-memory sample)
+- `hybrid` RL agent factory (HybridPolicyAgent)
+- `in_memory` broker (stores orders locally)
 
 ### Ensemble Layer
 
