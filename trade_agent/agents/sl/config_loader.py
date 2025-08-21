@@ -6,7 +6,7 @@ from typing import Any
 from omegaconf import DictConfig, OmegaConf
 from pydantic import ValidationError
 
-from src.common.config import CoreConfig
+from trade_agent.common.config import CoreConfig
 
 
 class ConfigValidationError(ValueError):

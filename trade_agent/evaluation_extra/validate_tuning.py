@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import project modules (primary path first, then fallbacks)
 try:
-    from src.eval.backtest import BacktestEngine  # type: ignore
+    from trade_agent.eval.backtest import BacktestEngine  # type: ignore
     from trade_agent.envs.trading_env import TradingEnvironment  # type: ignore
     from trade_agent.agents.sl.models.base import set_all_seeds  # type: ignore
     from trade_agent.agents.sl.models.factory import SLModelFactory  # type: ignore

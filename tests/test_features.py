@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.features.build import (
+from trade_agent.features.build import (
     build_features,
     compute_atr,
     compute_calendar_flags,
@@ -37,12 +37,11 @@ def create_test_data():
     }, index=dates)
 
     # Add timezone to match data loader expectations
-    df = df.tz_localize('UTC')
-
-    return df
+    return df.tz_localize('UTC')
 
 
-def test_no_future_data_leakage():
+
+def test_no_future_data_leakage() -> None:
     """Test that no feature uses future data."""
     df = create_test_data()
 
@@ -93,7 +92,7 @@ def test_no_future_data_leakage():
                     )
 
 
-def test_deterministic_results():
+def test_deterministic_results() -> None:
     """Test that results are deterministic with fixed seeds."""
     df = create_test_data()
 
@@ -105,7 +104,7 @@ def test_deterministic_results():
     pd.testing.assert_frame_equal(features1, features2)
 
 
-def test_log_returns_computation():
+def test_log_returns_computation() -> None:
     """Test log returns computation."""
     df = create_test_data()
     log_returns = compute_log_returns(df)
@@ -122,7 +121,7 @@ def test_log_returns_computation():
         assert abs(log_returns.iloc[i] - expected) < 1e-10
 
 
-def test_rolling_stats_computation():
+def test_rolling_stats_computation() -> None:
     """Test rolling statistics computation."""
     df = create_test_data()
     windows = [5, 10]
@@ -144,7 +143,7 @@ def test_rolling_stats_computation():
         assert pd.isna(rolling_stats[col].iloc[:window+1]).all()
 
 
-def test_atr_computation():
+def test_atr_computation() -> None:
     """Test ATR computation."""
     df = create_test_data()
     atr = compute_atr(df, window=14)
@@ -157,7 +156,7 @@ def test_atr_computation():
     assert pd.isna(atr.iloc[:14]).all()
 
 
-def test_rsi_computation():
+def test_rsi_computation() -> None:
     """Test RSI computation."""
     df = create_test_data()
     rsi = compute_rsi(df, window=14)
@@ -174,7 +173,7 @@ def test_rsi_computation():
     assert (valid_rsi >= 0).all() and (valid_rsi <= 100).all()
 
 
-def test_z_scores_computation():
+def test_z_scores_computation() -> None:
     """Test Z-scores computation."""
     df = create_test_data()
     z_scores = compute_z_scores(df, window=20)
@@ -191,7 +190,7 @@ def test_z_scores_computation():
     assert pd.isna(z_scores.iloc[:20]).all().all()
 
 
-def test_realized_volatility_computation():
+def test_realized_volatility_computation() -> None:
     """Test realized volatility computation."""
     df = create_test_data()
     rv = compute_realized_volatility(df, window=20)
@@ -203,7 +202,7 @@ def test_realized_volatility_computation():
     assert pd.isna(rv.iloc[:21]).all()
 
 
-def test_calendar_flags_computation():
+def test_calendar_flags_computation() -> None:
     """Test calendar flags computation."""
     df = create_test_data()
     calendar_flags = compute_calendar_flags(df)
@@ -224,7 +223,7 @@ def test_calendar_flags_computation():
     assert pd.isna(calendar_flags.iloc[0]).all()
 
 
-def test_targets_definition():
+def test_targets_definition() -> None:
     """Test targets definition."""
     df = create_test_data()
     targets = define_targets(df, horizon=5)

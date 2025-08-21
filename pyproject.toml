@@ -129,8 +129,10 @@ in_memory = "trade_agent.plugins.builtins:InMemoryBroker"
 
 
 [tool.setuptools.packages.find]
-where = ["src"]
+# Package code now lives directly under repository root (no src layout).
+where = ["."]
 include = ["trade_agent*"]
+exclude = ["src*", "docs/_build*"]
 namespaces = false
 
 [tool.black]

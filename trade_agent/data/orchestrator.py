@@ -432,7 +432,7 @@ class DataOrchestrator:
 
         # Import the existing feature engineering module
         try:
-            from src.features.build import (
+            from trade_agent.features.build import (
                 compute_rolling_stats,
                 compute_technical_indicators,
             )

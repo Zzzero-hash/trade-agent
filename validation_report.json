@@ -1,7 +1,7 @@
 {
   "replay_metadata": {
     "script_version": "1.0.0",
-    "execution_timestamp": "2025-08-14T19:12:56.434363",
+    "execution_timestamp": "2025-08-21T17:05:59.554462",
     "seed": 42,
     "status": "FAIL"
   },
@@ -45,22 +45,28 @@
   "sl_training": {
     "status": "PASS",
     "model_type": "ridge",
-    "training_time_seconds": 0.007879972457885742,
-    "train_mse": 6.121859644514696e-9,
-    "train_mae": 5.949874606232246e-5,
-    "train_r2": 0.047091621450600196,
+    "training_time_seconds": 0.0201108455657959,
+    "train_mse": 6.1218590361536565e-9,
+    "train_mae": 5.949874222902349e-5,
+    "train_r2": 0.04709171614606289,
     "cv_mse_mean": 0.0,
-    "results_hash": "b61141ad9d7d794b127d314cc9624f36c7da6b882eaca1a4ec9fd40823c98dcd",
+    "results_hash": "15c4ac281ac4e57530cb07ba87a42dc57e502f941c9700d05f9ca7214b3ca88c",
     "error": null
   },
   "rl_training": {
     "ppo": {
-      "status": "ERROR",
-      "error": "\"None of [Index(['mu_hat', 'sigma_hat'], dtype='object')] are in the [columns]\""
+      "status": "PASS",
+      "training_time_seconds": 4.808080434799194,
+      "final_reward": 0.0,
+      "timesteps": 1000,
+      "error": null
     },
     "sac": {
-      "status": "ERROR",
-      "error": ""
+      "status": "PASS",
+      "training_time_seconds": 13.56697154045105,
+      "timesteps": 1000,
+      "model_trained": true,
+      "error": null
     }
   },
   "hash_validation": {
@@ -71,7 +77,7 @@
       "status": "PASS"
     },
     "sl_results": {
-      "hash": "b61141ad9d7d794b127d314cc9624f36c7da6b882eaca1a4ec9fd40823c98dcd",
+      "hash": "15c4ac281ac4e57530cb07ba87a42dc57e502f941c9700d05f9ca7214b3ca88c",
       "status": "PASS"
     }
   },
@@ -79,19 +85,19 @@
     "validations": [
       {
         "metric_name": "sl_train_mse",
-        "actual_value": 6.121859644514696e-9,
+        "actual_value": 6.1218590361536565e-9,
         "expected_value": 1e-6,
         "tolerance": 1.0,
-        "relative_error": 0.9938781403554854,
+        "relative_error": 0.9938781409638463,
         "within_tolerance": true,
         "status": "PASS"
       },
       {
         "metric_name": "sl_train_r2",
-        "actual_value": 0.047091621450600196,
+        "actual_value": 0.04709171614606289,
         "expected_value": 0.95,
         "tolerance": 0.2,
-        "relative_error": 0.9504298721572629,
+        "relative_error": 0.9504297724778286,
         "within_tolerance": false,
         "status": "FAIL"
       },
@@ -122,7 +128,7 @@
     "checks": [
       {
         "check_name": "sl_training_time",
-        "actual_value": 0.007879972457885742,
+        "actual_value": 0.0201108455657959,
         "max_allowed": 30.0,
         "within_tolerance": true,
         "status": "PASS"
@@ -156,14 +162,14 @@
   "overall_validation": {
     "status": "FAIL",
     "total_steps": 7,
-    "passed_steps": 5,
-    "failed_steps": 2,
-    "success_rate": 0.7142857142857143,
+    "passed_steps": 6,
+    "failed_steps": 1,
+    "success_rate": 0.8571428571428571,
     "step_results": {
       "seed_validation": true,
       "feature_building": true,
       "sl_training": true,
-      "rl_training": false,
+      "rl_training": true,
       "hash_validation": true,
       "metric_validation": false,
       "tolerance_checks": true
