@@ -2,8 +2,7 @@
 
 # Inherit from base model configuration
 defaults:
-  - _base_
-  - override /cv: default # Override with project defaults
+  - _base
 
 model_type: linear
 

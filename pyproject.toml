@@ -141,23 +141,25 @@ skip-string-normalization = true
 [tool.ruff]
 line-length = 88
 target-version = "py311"
-select = [
-    "E","F","W",      # pyflakes/pycodestyle
-    "I",                # isort
-    "B",                # bugbear
-    "UP",               # pyupgrade
-    "N",                # pep8-naming
-    "C90",              # mccabe complexity
-    "DTZ",              # datetime
-    "T20",              # print statements
-    "ANN",              # type annotations
-    "RET",              # return
-    "SIM"               # simplifications
-]
-ignore = ["ANN101","ANN102","ANN401"]  # allow missing self/cls, Any in some contexts
 exclude = ["docs/_build", "build", "dist"]
 
-[tool.ruff.isort]
+[tool.ruff.lint]
+select = [
+    "E","F","W",
+    "I",
+    "B",
+    "UP",
+    "N",
+    "C90",
+    "DTZ",
+    "T20",
+    "ANN",
+    "RET",
+    "SIM"
+]
+ignore = ["ANN101","ANN102","ANN401"]
+
+[tool.ruff.lint.isort]
 known-first-party = ["trade_agent"]
 force-single-line = false
 combine-as-imports = true

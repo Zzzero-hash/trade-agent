@@ -2,8 +2,8 @@
 
 # Inherit from base model configuration
 defaults:
-  - _base_
-  - override /cv: default # Override with project defaults
+  # Correct reference to base template (file: _base.yaml)
+  - _base
 
 model_type: ridge
 
