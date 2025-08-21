@@ -11,13 +11,7 @@ RUN apt-get update && \
       software-properties-common cmake git python3.11 python3.11-dev python3.11-distutils python3.11-venv python3-pip \
       libssl-dev libgl1 libglib2.0-0
 
-# 2. Install Node.js for MCP services
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g npm@latest && \
-    rm -rf /var/lib/apt/lists/*
-
-# 2. Install Node.js for MCP services
+# 2. Install Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g npm@latest && \

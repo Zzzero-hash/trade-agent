@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
 
-from trade_agent.data.sources import CSVSourceAdapter
 from trade_agent.data.cache import ParquetCache
-from trade_agent.data.loader import load_timeseries, LoadConfig
+from trade_agent.data.loader import LoadConfig, load_timeseries
+from trade_agent.data.sources import CSVSourceAdapter
 
 
 def _ensure_csv(dir_: Path) -> None:
@@ -17,7 +17,7 @@ def _ensure_csv(dir_: Path) -> None:
     if path.exists():
         return
     ts = pd.date_range(
-        datetime.now(tz=timezone.utc) - timedelta(days=5),
+        datetime.now(tz=UTC) - timedelta(days=5),
         periods=24 * 5,
         freq="H",
     )
@@ -40,19 +40,16 @@ def main() -> None:  # pragma: no cover
     _ensure_csv(base)
     adapter = CSVSourceAdapter(name="csv", base_dir=base, timeframe="1H")
     cache = ParquetCache(root=base / "cache")
-    start = datetime.now(tz=timezone.utc) - timedelta(days=5)
+    start = datetime.now(tz=UTC) - timedelta(days=5)
     end = start + timedelta(days=3)
     cfg = LoadConfig(timeframe="1H")
     t0 = time.perf_counter()
     load_timeseries("BENCH", start, end, [adapter], cache=cache, config=cfg)
-    cold = time.perf_counter() - t0
+    time.perf_counter() - t0
     t1 = time.perf_counter()
     load_timeseries("BENCH", start, end, [adapter], cache=cache, config=cfg)
-    warm = time.perf_counter() - t1
-    print(
-        f"Cold load: {cold*1000:.2f} ms | Warm load: {warm*1000:.2f} ms | Speedup x{cold/max(warm,1e-6):.1f}"
-    )
+    time.perf_counter() - t1
 
 
-+if __name__ == "__main__":  # pragma: no cover
-+    main()
+if __name__ == "__main__":  # pragma: no cover
+    main()
