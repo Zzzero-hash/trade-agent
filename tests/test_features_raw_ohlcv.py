@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from features.build import build_features
+from trade_agent.features.build import build_features
 
 
 def _make_df(n: int = 50) -> pd.DataFrame:

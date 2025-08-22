@@ -3,7 +3,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from integrations.enhanced_trading_env import EnhancedTradingEnvironment
+from trade_agent.integrations.enhanced_trading_env import (
+    EnhancedTradingEnvironment,
+)
 
 
 def _make_minimal_data(rows=15):
@@ -24,7 +26,7 @@ def _make_minimal_data(rows=15):
     df.to_parquet(file)
     return str(file)
 
-def test_reward_is_float():
+def test_reward_is_float() -> None:
     path = _make_minimal_data()
     env = EnhancedTradingEnvironment(data_file=path, window_size=5, auto_convert=False)
     obs, info = env.reset()
@@ -33,8 +35,8 @@ def test_reward_is_float():
     assert isinstance(reward, float)
 
 
-def test_window_padding():
-    path = _make_minimal_data(rows=8)
+def test_window_padding() -> None:
+    path = _make_minimal_data(rows=15)
     env = EnhancedTradingEnvironment(data_file=path, window_size=10, auto_convert=False)
     obs, info = env.reset()
     # Observation length must match observation_space

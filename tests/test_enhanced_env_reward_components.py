@@ -3,7 +3,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from integrations.enhanced_trading_env import EnhancedTradingEnvironment
+from trade_agent.integrations.enhanced_trading_env import (
+    EnhancedTradingEnvironment,
+)
 
 
 def _make_trending_data(rows: int = 60) -> str:
@@ -30,7 +32,7 @@ def _make_trending_data(rows: int = 60) -> str:
     return str(file)
 
 
-def test_reward_components_present_and_penalties_effect():
+def test_reward_components_present_and_penalties_effect() -> None:
     path = _make_trending_data()
     reward_cfg = {
         'pnl_weight': 1.0,

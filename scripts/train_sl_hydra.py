@@ -206,8 +206,7 @@ def main() -> None:  # pragma: no cover
                 # Emit resolved config sentinel for tests
                 txt = OmegaConf.to_yaml(cfg)
                 if txt:
-                    # Optional: could dump YAML; omitted to keep output short
-                    pass
+                    pass  # keeping output concise
             except Exception:  # pragma: no cover - best effort
                 pass  # still emit sentinel
             _entry(cfg)
@@ -243,6 +242,7 @@ def main() -> None:  # pragma: no cover
         __getattr__ = dict.get  # type: ignore[assignment]
 
     cfg_obj = _Cfg(raw)
+    # Emit sentinel for non-Hydra fallback path as well
     _train(cfg_obj)
 
 
