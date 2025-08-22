@@ -166,7 +166,6 @@ model_config:
 1. **Use YAML for New Configurations**
    - YAML configs are more maintainable than JSON
    - Support for comments and references
-   - Better integration with Hydra
 
 2. **Follow Naming Conventions**
    - Model configs: `model/{model_name}.yaml`
