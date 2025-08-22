@@ -122,3 +122,11 @@ mlruns/
 # ML experiment outputs and runs
 outputs/
 experiments/
+
+# artifacts
+experiments.db
+run_stdout.txt
+run_stderr.txt
+validation_report.json
+test_validation_report.json
+logs/
