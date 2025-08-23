@@ -1,0 +1,42 @@
+algo:
+  sac:
+    learning_rate: 0.0003
+    batch_size: 256
+    gamma: 0.99
+    tau: 0.005
+    train_freq: 1
+    gradient_steps: 1
+    ent_coef: auto
+    seed: 42
+    deterministic: true
+features:
+  mlp_features:
+    input_dim: 16
+    hidden_dims:
+    - 32
+    - 32
+    activation: relu
+training:
+  algorithm: ppo
+  seed: 42
+  steps: 1000
+  log_interval: 100
+experiment:
+  name: rl_experiment
+paths:
+  models: models/rl
+  reports: reports
+  logs: logs/rl
+seed: 42
+device: auto
+env:
+  data_path: data/features.parquet
+  window_size: 30
+  validation_split: 0.2
+  initial_capital: 100000.0
+  transaction_cost: 0.001
+optimization:
+  enabled: false
+  n_trials: 20
+  direction: maximize
+  metric: sharpe

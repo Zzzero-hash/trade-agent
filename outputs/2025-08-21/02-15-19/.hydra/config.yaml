@@ -1,0 +1,54 @@
+algo:
+  ppo:
+    algorithm: PPO
+    learning_rate: 0.0003
+    n_steps: 2048
+    batch_size: 64
+    n_epochs: 10
+    gamma: 0.99
+    gae_lambda: 0.95
+    clip_range: 0.2
+    ent_coef: 0.05
+    ent_coef_final: 0.01
+    vf_coef: 0.5
+    max_grad_norm: 0.5
+    seed: ${seed}
+    reward_scaling:
+      scale: 1.0
+      clip_range: 10.0
+features:
+  mlp_features:
+    input_dim: 514
+    hidden_layers:
+    - 256
+    - 128
+    - 64
+    output_dim: 64
+    activation: ReLU
+training:
+  training:
+    total_timesteps: 1000
+    eval_freq: 10000
+    checkpoint_freq: 50000
+    save_best: true
+    normalize_obs: true
+    normalize_reward: true
+experiment:
+  name: rl_experiment
+paths:
+  models: models/rl
+  reports: reports
+  logs: logs/rl
+seed: 42
+device: auto
+env:
+  data_path: data/features.parquet
+  window_size: 30
+  validation_split: 0.2
+  initial_capital: 100000.0
+  transaction_cost: 0.001
+optimization:
+  enabled: false
+  n_trials: 20
+  direction: maximize
+  metric: sharpe

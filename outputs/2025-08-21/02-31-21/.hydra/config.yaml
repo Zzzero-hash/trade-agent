@@ -1,0 +1,52 @@
+algo:
+  sac:
+    algorithm: SAC
+    learning_rate: 0.0003
+    buffer_size: 1000000
+    learning_starts: 1000
+    batch_size: 256
+    tau: 0.005
+    gamma: 0.99
+    train_freq: 1
+    gradient_steps: 1
+    ent_coef: auto
+    target_update_interval: 1
+    target_entropy: -0.5
+    seed: ${seed}
+    verbose: 1
+features:
+  mlp_features:
+    input_dim: 514
+    hidden_layers:
+    - 256
+    - 128
+    - 64
+    output_dim: 64
+    activation: ReLU
+training:
+  training:
+    total_timesteps: 1000
+    eval_freq: 10000
+    checkpoint_freq: 50000
+    save_best: true
+    normalize_obs: true
+    normalize_reward: true
+experiment:
+  name: rl_experiment
+paths:
+  models: models/rl
+  reports: reports
+  logs: logs/rl
+seed: 42
+device: auto
+env:
+  data_path: data/features.parquet
+  window_size: 30
+  validation_split: 0.2
+  initial_capital: 100000.0
+  transaction_cost: 0.001
+optimization:
+  enabled: false
+  n_trials: 20
+  direction: maximize
+  metric: sharpe

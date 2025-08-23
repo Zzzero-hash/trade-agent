@@ -1,0 +1,5 @@
+# Minimal MLP feature config referenced by RL training script (cfg.mlp_features)
+# Provides placeholder dimensionality information for feature extractor layers.
+input_dim: 16
+hidden_dims: [32, 32]
+activation: relu

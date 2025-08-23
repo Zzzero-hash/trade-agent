@@ -1,0 +1,6 @@
+# Feature MLP head configuration
+# Referenced by defaults list (features: mlp)
+mlp_features:
+  input_dim: 16
+  hidden_dims: [32, 32]
+  activation: relu

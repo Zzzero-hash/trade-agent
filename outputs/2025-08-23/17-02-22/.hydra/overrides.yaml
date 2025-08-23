@@ -1,0 +1,2 @@
+- algo=ppo
+- env.data_path=data/features.parquet

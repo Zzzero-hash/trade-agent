@@ -1,0 +1,8 @@
+[trade_agent.brokers]
+in_memory = trade_agent.plugins.builtins:InMemoryBroker
+
+[trade_agent.data_collectors]
+memory = trade_agent.plugins.builtins:simple_memory_collector
+
+[trade_agent.rl_agents]
+hybrid = trade_agent.plugins.builtins:make_hybrid_agent

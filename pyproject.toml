@@ -143,7 +143,13 @@ skip-string-normalization = true
 [tool.ruff]
 line-length = 88
 target-version = "py311"
-exclude = ["docs/_build", "build", "dist"]
+exclude = [
+    "docs/_build",
+    "build",
+    "dist",
+    # Legacy experimental modules pending migration/refactor (TRA-10 follow-up)
+    "trade_agent/evaluation_extra",
+]
 
 [tool.ruff.lint]
 select = [
