@@ -1,6 +1,0 @@
-# Ridge model Hydra config
-model:
-  model_type: ridge
-  parameters:
-    alpha: 1.0
-    random_state: 42

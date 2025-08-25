@@ -1,9 +1,0 @@
-{
-  "training_config": {
-    "algorithm": "ppo",
-    "seed": 42,
-    "steps": 1000,
-    "log_interval": 100
-  },
-  "ppo_config": {}
-}

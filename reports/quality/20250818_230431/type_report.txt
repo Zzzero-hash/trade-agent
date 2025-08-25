@@ -1,1 +1,0 @@
-mypy failed or not installed

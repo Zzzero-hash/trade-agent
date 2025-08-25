@@ -1,5 +1,0 @@
-# Minimal RL training default config (added to satisfy tests expecting group training/default)
-algorithm: ppo
-seed: 42
-steps: 1000
-log_interval: 100

@@ -1,2 +1,0 @@
-Coverage (stdout): None
-Coverage (line-rate): 46.050000000000004
