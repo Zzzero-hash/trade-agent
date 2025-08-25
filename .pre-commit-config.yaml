@@ -35,6 +35,11 @@ repos:
       - id: ruff
         args: [--fix, --unsafe-fixes, --select=I, --exit-zero] # Changed to exit-zero
         name: ruff (import sorting)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: []
 
   # Temporarily disabled for relaxed criteria
   # - repo: https://github.com/pre-commit/mirrors-mypy

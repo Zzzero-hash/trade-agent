@@ -8,12 +8,12 @@ dynamic = ["version"]
 authors = [
   { name="Trading RL Platform Team", email="contact@trading-rl-platform.org" },
 ]
-description = "A trading agent for reinforcement learning."
+description = "Local-first open-core trading ML/RL platform scaffold."
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
