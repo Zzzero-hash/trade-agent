@@ -10,10 +10,6 @@ repos:
         exclude: ^(k8s/|docs/_build/|\.doctrees/|\.buildinfo$|searchindex\.js$|node_modules/)
       - id: check-added-large-files
         args: ["--maxkb=100000"] # Increased to 100MB max
-      # Temporarily disabled strict checks
-      # - id: check-ast
-      # - id: debug-statements
-      # - id: detect-private-key
       - id: check-case-conflict
       - id: check-executables-have-shebangs
       - id: check-merge-conflict
@@ -33,40 +29,8 @@ repos:
         args: [--fix, --unsafe-fixes, --exit-zero] # Changed to exit-zero to not fail on issues
       # Run import sorting
       - id: ruff
-        args: [--fix, --unsafe-fixes, --select=I, --exit-zero] # Changed to exit-zero
+        args: [--fix, --unsafe-fixes, --select=I] # Changed to exit-zero
         name: ruff (import sorting)
-
-  # Temporarily disabled for relaxed criteria
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.17.0
-  #   hooks:
-  #     - id: mypy
-  #       additional_dependencies:
-  #         - types-PyYAML
-  #         - types-requests
-  #         - types-setuptools
-  #       exclude: ^(tests/|docs/|scripts/|build_|generate_|validate_|run_|evaluate_)
-  #       args: [--ignore-missing-imports, --no-strict-optional]  # Added relaxed args
-
-  # Temporarily disabled for relaxed criteria
-  # - repo: https://github.com/pycqa/bandit
-  #   rev: 1.8.6
-  #   hooks:
-  #     - id: bandit
-  #       args: ["-ll", "--skip=B101,B601,B602,B603,B604,B605,B606,B607,B608,B609"]  # Skip common issues
-  #       exclude: ^(tests/|scripts/)
-
-  # Temporarily disabled for relaxed criteria
-  # - repo: https://github.com/pycqa/pydocstyle
-  #   rev: 6.3.0
-  #   hooks:
-  #     - id: pydocstyle
-  #       args:
-  #         [
-  #           "--convention=google",
-  #           "--add-ignore=D100,D103,D104,D105,D107,D200,D202,D205,D209,D400,D401,D402,D101,D102,D212,D415,D416,D411,D201,D204,D210,D211,D213,D214,D215,D300,D301,D302,D412,D413,D414,D417",
-  #         ]
-  #       exclude: ^(tests/|docs/|scripts/|build_|generate_|validate_|run_|evaluate_)
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.20.0
@@ -94,66 +58,6 @@ repos:
         additional_dependencies: [isort]
         args: ["--profile=black"]
 
-  # Removed black and isort to avoid conflicts with ruff
-  # - repo: https://github.com/psf/black
-  #   rev: 25.1.0
-  #   hooks:
-  #     - id: black
-  #       language_version: python3
-  #       args: ["--line-length=120", "--skip-string-normalization", "--quiet"]
-
-  # - repo: https://github.com/pycqa/isort
-  #   rev: 6.0.1
-  #   hooks:
-  #     - id: isort
-  #       args: ["--profile=black", "--line-length=120", "--atomic"]
-
-  # Temporarily disabled for relaxed criteria
-  # - repo: https://github.com/PyCQA/autoflake
-  #   rev: v2.3.1
-  #   hooks:
-  #     - id: autoflake
-  #       args:
-  #         [
-  #           "--in-place",
-  #           "--remove-all-unused-imports",
-  #           "--remove-unused-variables",
-  #           "--remove-duplicate-keys",
-  #           "--expand-star-imports",
-  #           "--recursive",
-  #         ]
-
-  # - repo: https://github.com/pre-commit/mirrors-yapf
-  #   rev: v0.32.0
-  #   hooks:
-  #     - id: yapf
-  #       args: ["--style=google", "--in-place"]
-
-  # - repo: https://github.com/pre-commit/mirrors-pylint
-  #   rev: v3.0.0a5
-  #   hooks:
-  #     - id: pylint
-  #       args:
-  #         [
-  #           "--disable=C0114,C0115,C0116,R0903,R0913,W0621,W0703",
-  #           "--output-format=text",
-  #         ]
-  #       exclude: ^(tests/|docs/|scripts/)
-
-  # Removed flake8 to avoid conflicts with ruff
-  # - repo: https://github.com/PyCQA/flake8
-  #   rev: 7.3.0
-  #   hooks:
-  #     - id: flake8
-  #       args:
-  #         [
-  #           "--max-line-length=120",
-  #           "--extend-ignore=E203,W503",
-  #           "--count",
-  #           "--statistics",
-  #         ]
-  #       exclude: ^(tests/|docs/|scripts/)
-
   - repo: local
     hooks:
       - id: clear-notebook-outputs
@@ -162,6 +66,13 @@ repos:
         language: system
         files: \.ipynb$
         require_serial: false
+
+      - id: verify-release
+        name: Verify release gates
+        entry: python scripts/verify_release.py --all --coverage-min 70
+        language: system
+        pass_filenames: false
+        stages: [manual]
 
       - id: run-tests
         name: Run unit tests
