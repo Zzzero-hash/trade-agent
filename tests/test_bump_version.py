@@ -25,7 +25,8 @@ def test_bump_version_patch_dry_run_and_real() -> None:
             capture_output=True,
             text=True,
         )
-        assert "[dry-run]" in r.stdout
+        assert "[dry-run]" in r.stderr
+        assert f"{original_version} -> " in r.stderr
         assert read_version() == original_version
 
         # Real bump
