@@ -22,12 +22,13 @@ import pathlib
 import re
 import sys
 from typing import Literal
+import logging
 
+logging.basicConfig(level=logging.INFO)
 
 SEMVER_RE = re.compile(r'^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$')
 Part = Literal["major", "minor", "patch"]
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-# CHANGED: point to root version.py instead of trade_agent/version
 VERSION_PY = ROOT / "version.py"
 PYPROJECT = ROOT / "pyproject.toml"
 VERSION_RE = re.compile(r'__version__\s*=\s*"(?P<version>\d+\.\d+\.\d+)"')
@@ -37,6 +38,7 @@ def read_current_version() -> str:
     content = VERSION_PY.read_text(encoding="utf-8")
     m = VERSION_RE.search(content)
     if not m:
+        logging.error(f"__version__ not found in {VERSION_PY}")
         sys.exit(2)
     return m.group("version")
 
@@ -88,6 +90,7 @@ def parse_args() -> argparse.Namespace:
 
 def validate_version(v: str) -> None:
     if not re.fullmatch(r"\d+\.\d+\.\d+", v):
+        logging.error(f"Invalid semantic version: {v}")
         sys.exit(3)
 
 
@@ -95,15 +98,19 @@ def main() -> int:
     args = parse_args()
     current = read_current_version()
     if args.print:
+        logging.info(current)
         return 0
     new_version = bump(current, args.part) if args.part else args.set_version
     validate_version(new_version)
     if new_version == current:
+        logging.info(f"Version is already {current}, no change.")
         return 1
     if args.dry_run:
+        logging.info(f"[dry-run] {current} -> {new_version}")
         return 0
     write_version_py(new_version)
     maybe_update_pyproject(new_version)
+    logging.info(f"{current} -> {new_version}")
     return 0
 
 
