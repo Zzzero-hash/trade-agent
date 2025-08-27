@@ -21,10 +21,14 @@ import argparse
 import pathlib
 import re
 import sys
+from typing import Literal
 
 
+SEMVER_RE = re.compile(r'^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$')
+Part = Literal["major", "minor", "patch"]
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-VERSION_PY = ROOT / "trade_agent" / "version.py"
+# CHANGED: point to root version.py instead of trade_agent/version
+VERSION_PY = ROOT / "version.py"
 PYPROJECT = ROOT / "pyproject.toml"
 VERSION_RE = re.compile(r'__version__\s*=\s*"(?P<version>\d+\.\d+\.\d+)"')
 
@@ -96,9 +100,10 @@ def main() -> int:
     validate_version(new_version)
     if new_version == current:
         return 1
-    if not args.dry_run:
-        write_version_py(new_version)
-        maybe_update_pyproject(new_version)
+    if args.dry_run:
+        return 0
+    write_version_py(new_version)
+    maybe_update_pyproject(new_version)
     return 0
 
 
