@@ -1,6 +1,11 @@
 # Environment variables
 .env
 
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
 # Visual Studio Code settings
 .vscode/
 
