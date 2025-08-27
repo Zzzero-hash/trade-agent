@@ -1,51 +1,80 @@
-trade_agent layout:
-trade_agent/
-    __init__.py                   (existing)
-    engine/                       (existing core execution area)
-        __init__.py
-        pipeline.py               (existing: pipeline orchestration)
-        nodes/                    (existing container for node types)
-            __init__.py
-            data_source.py        (planned: market data fetch node)
-            sma.py                (planned: SMA transform)
-            crossover.py          (planned: SMA crossover signal)
-            (future) features/    (more indicator/feature nodes)
-        (future) execution.py     (higher-level execute helpers)
-    backtest/                     (existing namespace reserved)
-        __init__.py
-        runner.py                 (planned: SimpleLongOnlyBacktester + BacktestResult)
-        (future) metrics.py       (planned: separated performance metrics)
-    telemetry/
-        __init__.py
-        core.py                   (planned: opt-in event recorder, env flag)
-    flags/
-        __init__.py
-        store.py                   (existing: feature flag store)
-    api/
-        __init__.py
-        app.py
-        routes/
-            __init__.py
-            health.py
-            pipelines.py
-        persistence/
-            __init__.py
-            repository.py
-            sqlite.py
-        utils/
-            __init__.py
-            logging.py
-    scripts/
-        verify_release.py        (existing release gate script)
-    tests/
-        __init__.py
-        test_engine_pipeline.py  (existing baseline)
-        test_backtest_runner.py  (planned)
-        test_api_health.py       (planned)
-        test_version_bump.py     (existing)
-        test_flags.py            (existing)
-        core/
-            __init__.py
-            test_engine_pipeline.py (planned)
-            test_metrics.py         (planned)
-            test_telemetry_opt_in.py (planned)
+# Trade Agent - Local-First ML Trading Platform
+
+A trading agent platform for reinforcement learning and algorithmic trading.
+
+## Project Structure
+
+```
+trade_agent/                    # Main Python package
+├── __init__.py                # Package initialization
+├── engine/                    # Core execution engine (ready for implementation)
+│   └── __init__.py
+└── backend/                   # Backend services (ready for implementation)
+    └── __init__.py
+
+docs/                          # Documentation
+├── source/
+│   └── glossary.md
+└── Makefile
+
+scripts/                       # Utility scripts
+├── bump_version.py            # Version management
+└── verify_release.py          # Release quality gates
+
+tests/                         # Test suite
+└── test_bump_version.py       # Version script tests
+
+ops/                          # Operations and CI
+└── ci/
+    └── workflows/
+        └── lint_type_test.sh
+
+# Configuration files
+├── pyproject.toml            # Project configuration
+├── version.py                # Centralized version
+├── LICENSE                   # MIT License
+├── Dockerfile               # Container setup
+└── README.md                # This file
+```
+
+## Getting Started
+
+### Installation
+
+```bash
+pip install -e .
+```
+
+### Usage
+
+```python
+import trade_agent
+print(f"Trade Agent version: {trade_agent.__version__}")
+```
+
+## Development
+
+This project follows a clean, minimal structure focused on the core trading platform functionality. The `trade_agent/` package is organized for:
+
+- **Engine**: Core execution and pipeline orchestration
+- **Backend**: Services and utilities
+
+### Quality Gates
+
+Run the release verification script to check code quality:
+
+```bash
+python scripts/verify_release.py --all
+```
+
+### Version Management
+
+Bump version using the included script:
+
+```bash
+python scripts/bump_version.py --part patch  # or minor, major
+```
+
+## License
+
+MIT License - see LICENSE file for details.

@@ -117,16 +117,6 @@ dev = [
     "pre-commit",
 ]
 
-[project.entry-points."trade_agent.data_collectors"]
-memory = "trade_agent.plugins.builtins:simple_memory_collector"
-
-[project.entry-points."trade_agent.rl_agents"]
-hybrid = "trade_agent.plugins.builtins:make_hybrid_agent"
-
-[project.entry-points."trade_agent.brokers"]
-in_memory = "trade_agent.plugins.builtins:InMemoryBroker"
-
-
 [tool.setuptools.packages.find]
 # Package code now lives directly under repository root (no src layout).
 where = ["."]
@@ -146,8 +136,6 @@ exclude = [
     "docs/_build",
     "build",
     "dist",
-    # Legacy experimental modules pending migration/refactor (TRA-10 follow-up)
-    "trade_agent/evaluation_extra",
 ]
 
 [tool.ruff.lint]
