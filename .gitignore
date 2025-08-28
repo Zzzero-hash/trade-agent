@@ -16,3 +16,7 @@
 .devcontainer/
 devcontainer/
 Dockerfile
+
+# Data files
+data/ohlcv/
+data/catalog.yaml
