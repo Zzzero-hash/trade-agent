@@ -20,3 +20,7 @@ Dockerfile
 # Data files
 data/ohlcv/
 data/catalog.yaml
+
+# Roo
+.roomodes
+.roo/
