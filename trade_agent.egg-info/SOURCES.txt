@@ -9,6 +9,11 @@ trade_agent.egg-info/dependency_links.txt
 trade_agent.egg-info/entry_points.txt
 trade_agent.egg-info/requires.txt
 trade_agent.egg-info/top_level.txt
+trade_agent/backtest/__init__.py
+trade_agent/backtest/runner.py
 trade_agent/engine/__init__.py
 trade_agent/engine/nodes/__init__.py
 trade_agent/engine/nodes/data_handler.py
+trade_agent/engine/nodes/talib_wrapper.py
+trade_agent/plugins/__init__.py
+trade_agent/plugins/builtins.py

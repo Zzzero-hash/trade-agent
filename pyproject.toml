@@ -124,6 +124,7 @@ dev = [
 
 [project.entry-points."trade_agent.data_collectors"]
 memory = "trade_agent.plugins.builtins:simple_memory_collector"
+yfinance = "trade_agent.plugins.builtins:yfinance_data_collector"
 
 [project.entry-points."trade_agent.rl_agents"]
 hybrid = "trade_agent.plugins.builtins:make_hybrid_agent"

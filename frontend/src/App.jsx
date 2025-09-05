@@ -1,25 +1,35 @@
-import { WorkflowTabs } from './components/WorkflowTabs'
-import './App.css'
+import { useWorkflowStore } from "./stores/workflowStore";
+import { WorkflowTabs } from "./components/WorkflowTabs";
+import { DataStep } from "./components/DataStep";
 
 function App() {
- return (
+  const currentStep = useWorkflowStore((state) => state.currentStep);
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case "data":
+        return <DataStep />;
+      case "features":
+        return <div>Feature Engineering Step</div>;
+      case "model":
+        return <div>Model Selection Step</div>;
+      case "train":
+        return <div>Training Step</div>;
+      case "evaluate":
+        return <div>Evaluation Step</div>;
+      case "deploy":
+        return <div>Deployment Step</div>;
+      default:
+        return <div>Welcome! Please select a step to begin.</div>;
+    }
+  };
+
+  return (
     <div className="app">
-      <header className="app-header">
-        <h1>Trade Agent - ML Trading Platform</h1>
-        <p className="app-subtitle">Machine Learning Workflow for Algorithmic Trading</p>
-      </header>
-      <main className="app-main">
-        <WorkflowTabs />
-        <div className="workflow-content">
-          {/* Workflow content will be rendered based on current step */}
-          <div className="step-content">
-            <h2>Workflow Step Content</h2>
-            <p>This is where the workflow step content will be displayed.</p>
-          </div>
-        </div>
-      </main>
+      <WorkflowTabs />
+      <div className="workflow-content">{renderStepContent()}</div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
