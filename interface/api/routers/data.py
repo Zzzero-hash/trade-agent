@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from trade_agent.engine.nodes.data_handler import ParquetStore
+from trade_agent.plugins.builtins import save_yfinance_data_to_store
 
 
 router = APIRouter(prefix="/data", tags=["data"])
@@ -32,6 +33,13 @@ class SeriesInfo(BaseModel):
     end: str
     rows: int
     last_updated: str
+
+
+class DataFetchRequest(BaseModel):
+    symbol: str
+    period: str = "1y"
+    interval: str = "1d"
+    timeframe: str | None = None  # Will default to interval if not provided
 
 
 @router.get("/series", response_model=list[SeriesInfo])
@@ -245,3 +253,76 @@ async def upload_csv(
         raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process upload: {str(e)}")
+
+
+@router.post("/fetch")
+async def fetch_data(request: DataFetchRequest):
+    """Smart data fetch endpoint that checks local storage first, then downloads from yfinance if needed"""
+    try:
+        # Validate input
+        if not request.symbol:
+            raise HTTPException(status_code=400, detail="Symbol is required")
+
+        # Set timeframe to interval if not provided
+        timeframe = request.timeframe or request.interval
+
+        store = ParquetStore("data")
+
+        # Check if we already have data for this symbol/timeframe
+        existing_meta = store.catalog_entry(request.symbol, timeframe)
+
+        if existing_meta:
+            # We have existing data, read it
+            df = store.read(request.symbol, timeframe)
+
+            # Convert timestamp to ISO format for JSON serialization
+            if 'timestamp' in df.columns:
+                df['timestamp'] = df['timestamp'].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+            # Convert to list of dictionaries
+            data = df.to_dict(orient='records')
+
+            return {
+                "data": data,
+                "source": "local",
+                "rows": len(data),
+                "symbol": request.symbol,
+                "timeframe": timeframe,
+                "message": "Data loaded from local storage"
+            }
+        # No existing data, fetch from yfinance
+        result = save_yfinance_data_to_store(
+            symbol=request.symbol,
+            period=request.period,
+            interval=request.interval,
+            store_path="data"
+        )
+
+        if not result.get("success", False):
+            error_msg = result.get('error', 'Unknown error')
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to fetch data from yfinance: {error_msg}"
+            )
+
+        # Read the newly saved data
+        df = store.read(request.symbol, timeframe)
+
+        # Convert timestamp to ISO format for JSON serialization
+        if 'timestamp' in df.columns:
+            df['timestamp'] = df['timestamp'].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        # Convert to list of dictionaries
+        data = df.to_dict(orient='records')
+
+        return {
+            "data": data,
+            "source": "yfinance",
+            "rows": len(data),
+            "symbol": request.symbol,
+            "timeframe": timeframe,
+            "message": "Data fetched from yfinance and saved to local storage"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch data: {str(e)}")

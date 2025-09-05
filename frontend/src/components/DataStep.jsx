@@ -51,31 +51,33 @@ export const DataStep = () => {
     setError(null);
 
     try {
-      // Simulate API call to fetch data
-      // In a real implementation, this would call your backend API
-      const response = await fetch(`http://localhost:8000/data/read`, {
+      // Use the new smart fetch endpoint that checks local storage first
+      const response = await fetch(`http://localhost:8000/data/fetch`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           symbol: formData.symbol,
-          timeframe: formData.yfInterval,
           period: formData.yfPeriod,
+          interval: formData.yfInterval,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(
+          `Failed to fetch data: ${errorData.detail || response.statusText}`,
+        );
       }
 
-      const data = await response.json();
-      setChartData(data);
+      const result = await response.json();
+      setChartData(result.data);
       setDataFetched(true);
 
-      // Add success notification
+      // Add success notification with source information
       console.log(
-        `Successfully fetched ${data.length} data points for ${formData.symbol}`,
+        `Successfully fetched ${result.rows} data points for ${formData.symbol} from ${result.source}`,
       );
     } catch (err) {
       setError(err.message);
